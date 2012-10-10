@@ -1,0 +1,92 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>loading</title>
+        <script language='JavaScript'>
+            count = 0;
+            percent = 0;
+            point1 = 0;
+            x1 = 0;
+            y1 = 0;
+            point2 = 0;
+            x2 = 0;
+            y2 = 0;
+            
+            var cssAnimation = document.createElement('style');
+            cssAnimation.type = 'text/css';
+            document.getElementsByTagName("head")[0].appendChild(cssAnimation);
+            while (percent < 100) {
+                y1 = y2;
+                x1 = x2;
+                point1 = percent;
+                step = parseInt(Math.random() * 3) + 1;
+                percent += step;
+                if (percent > 100) {
+                    percent = 100;
+                }
+                point2 = percent;
+                y2 = y1 - 2.7 * (point2 - point1);
+                x2 = x1 - 15 * (point2 - point1) - parseInt(Math.random());
+                
+                document.getElementsByTagName("head")[0].removeChild(cssAnimation);
+                
+                var rules = document.createTextNode('@-webkit-keyframes swam {' +
+                point1 +
+                '% { -webkit-mask-position:' +
+                x1 +
+                ' ' +
+                y1 +
+                ';}' +
+                point1 +
+                '% { -webkit-mask-position:' +
+                x1 +
+                ' ' +
+                y1 +
+                ';}' +
+                '}');
+                cssAnimation.appendChild(rules);
+                document.getElementsByTagName("head")[0].appendChild(cssAnimation);
+                
+            }
+        </script>
+        <style type="text/css">
+            #div1, #div2 {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+            
+            /*
+             @-webkit-keyframes swam {
+             0% {
+             -webkit-mask-position: 0 0;
+             }
+             100% {
+             -webkit-mask-position: -1600 -270px;
+             }
+             }
+             */
+            #ani {
+                -webkit-animation: swam 5s infinite;
+                -moz-animation: swam 5s infinite;
+                -webkit-animation-delay: 0s;
+                -moz-animation-delay: 0s;
+                -webkit-animation-direction: normal;
+                -moz-animation-direction: normal;
+                -webkit-animation-iteration-count: 1;
+                -webkit-mask-image: url(wave1.png);
+                -moz-mask-image: url(wave1.png);
+                -webkit-mask-size: 1600px 500px;
+                -moz-mask-size: 1600px 500px;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="div1">
+            <img src="logo_black1.png"/>
+        </div>
+        <div id="div2">
+            <img src="logo_color.png" alt="loading" id='ani'>
+        </div>
+    </body>
+</html>

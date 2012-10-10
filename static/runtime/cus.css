@@ -1,0 +1,167 @@
+body {
+    font-family: "微软雅黑";
+    font-size: 12px;
+    margin: 0;
+    background-repeat: repeat;
+    background-image: url('img/bg.jpg');
+    text-align:center;
+}
+
+#container {
+    margin: 0 auto;
+    width: 800px;
+}
+
+#header {
+    height: 100px;
+    margin-top: 60px;
+    font-size: 28px;
+    color: #fff;
+}
+
+#main {
+    height:400px;
+    width: 800px;
+    margin-bottom: 5px;
+    background: #ffffff;
+    position:relative;
+    box-shadow: 0px 0px 40px black;
+}
+
+#car{
+    position:absolute;
+    left:0px;
+    right:0px;
+    top:0px;
+    bottom:0px;
+}
+
+#logo { /* padding-left:12px; padding-top:10px;*/
+    position:absolute;
+    left:5px;
+    top:5px;
+}
+
+.action {
+    position:absolute;
+    top: 90px;
+    width: 28px;
+    right: 10px;
+    height: 150px;
+}
+
+.action_full {
+    position:absolute;
+    top: 10px;
+    width: 54px;
+    right: 10px;
+    height: 150px;
+}
+
+.action_btn {
+    cursor: pointer;
+}
+/*actions*/
+#video_act{
+    background-size:28px 28px;
+    width:28px;
+    height:28px;
+    background-image:url(img/video_1.png);
+}
+#video_act:hover,
+#video_act.active{
+    background-image:url(img/video_2.png);
+}
+#rotate_act{
+    background-size:28px 28px;
+    width:28px;
+    height:28px;
+    background-image:url(img/rotate_1.png);
+}
+#rotate_act:hover,
+#rotate_act.active{
+    background-image:url(img/rotate_2.png);
+}
+#eye_act{
+    background-size:28px 28px;
+    width:28px;
+    height:28px;
+    background-image:url(img/eye_1.png);
+}
+#eye_act:hover,
+#eye_act.active{
+    background-image:url(img/eye_2.png);
+}
+
+#help {
+    width: 100px;
+    height: 20px;
+    background: #eeeeee;
+    position:absolute;
+    top:2px;
+    right:30px;
+    color: #000;
+}
+
+#help a, #color a {
+    text-decoration: none;
+}
+
+#help:hover, #color:hover {
+    background: #fff;
+    cursor: pointer;
+}
+
+#help ul, #color ul {
+    opacity: 0.5;
+    margin-top: 10px;
+    display: none;
+    background: #000;
+    height: 30px;
+    width: 60px;
+}
+
+#screen {
+    width: 20px;
+    height: 20px;
+    position: absolute;
+    right: 2px;
+    top:2px;
+    cursor: pointer;
+}
+#cameras{
+    position: absolute;
+    left:100px;
+    bottom:10px;
+}
+#cameras li{
+    list-style: none;
+    float:left;
+    width:8px;
+    height : 8px;
+    border-radius : 4px;
+    box-shadow: 0px 0px 4px black;
+    margin:8px;
+    cursor: pointer;
+}
+#cameras li.active{
+    background-color: grey;
+}
+
+#loading{
+    position: absolute;
+    left:300px;
+    top:100px;
+}
+#div1, #div2 {
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+ #ani {
+    -webkit-mask-image: url(img/wave1.png);
+    -moz-mask-image: url(img/wave1.png);
+    -webkit-mask-size: 1600px 500px;
+    -moz-mask-size: 1600px 500px;
+    -webkit-mask-position : 1000px 0px;
+}

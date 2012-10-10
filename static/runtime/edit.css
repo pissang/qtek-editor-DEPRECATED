@@ -1,0 +1,127 @@
+body {
+    font-family: "微软雅黑";
+    font-size: 12px;
+    margin: 0;
+    background-repeat: repeat;
+    background-image: url('img/bg.jpg')
+}
+
+#container {
+    margin: 0 auto;
+    width: 1197px;
+}
+
+#header {
+    height: 32px;
+    margin-top: 5px;
+    font-size: 24px;
+    color: #fff;
+}
+
+#main {
+    height: 672px;
+    margin-bottom: 5px;
+    background: #ffffff;
+    background: url('img/test/car_small.jpg') no-repeat #fff;
+}
+
+.action {
+    float: right;
+    margin-top: 90px;
+    width: 28px;
+    margin-right: -240px;
+    height: 150px;
+}
+
+.action_full {
+    float: right;
+    margin-top: 200px;
+    width: 54px;
+    margin-right: -220px;
+    height: 150px;
+}
+
+.action_btn {
+    cursor: pointer;
+}
+
+#help {
+    width: 100px;
+    height: 20px;
+    background: #eeeeee;
+    float: right;
+    margin: 0 1px
+}
+
+#color {
+    width: 120px;
+    height: 20px;
+    background: #cccccc;
+    float: right;
+    margin: 0 4px;
+}
+
+#screen {
+    width: 20px;
+    height: 20px;
+    float: right;
+    margin: 0 0;
+    cursor: pointer;
+}
+
+#right {
+    float: right;
+    margin-top: 20px;
+}
+
+.patch {
+    width: 400px;
+    margin-top: 10px;
+    border: 1px solid silver;
+    box-shadow: -1px 0 4px #eee;
+    box-shadow: 3px 0 4px #ccc;
+    box-shadow: 0 -1px 4px #eee;
+    box-shadow: 0 3px 4px #ccc;
+}
+
+.patch_head {
+    padding: 8px 10px 8px 10px;
+    background: #ccc;
+    height: 12px;
+	font-weight:500;
+}
+
+.patch_content {
+	padding: 12px 8px 12px 8px;
+}
+
+table {
+	cellpadding:2px;
+	width:390px;
+}
+th{ background:#999999;color:#fff}
+.t_name {
+	width:20%;
+}
+.t_xyz {
+	width:30%;
+}
+.t_detail {
+	width:50%;
+}
+
+#nodeline {
+	position:absolute;
+	top:95%;
+	left:10%;
+	width:80%;
+	height:20px;
+}
+#line {
+    opacity: 0.5;
+}
+
+#nodeline ul li {
+    list-style: none;
+    display: inline;
+}

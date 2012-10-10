@@ -1,0 +1,79 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>搜索页3D广告展现</title>
+<link href="cus.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+	
+<div id="container">
+	<div id="header">搜索页3D广告展现</div>
+  	<div id="main">
+  		<div id="loading">
+
+	        <div id="div1">
+	            <img src="img/logo_black1.png"/>
+	        </div>
+	        <div id="div2">
+	            <img src="img/logo_color.png" alt="loading" id='ani'>
+	        </div>
+	    </div>
+  		<canvas id="car"></canvas>
+		<div id="logo">
+			<img id='logopic' src='img/lambo.jpg' width='100px'>
+		</div>
+		<div id="screen">
+			<img id='screenpic' src="img/fullscreen_2.png"/>
+		</div>
+		<div id="help">
+			<a href="#">
+				<div style='float:left; padding:1px 8px 1px 10px;'>操作指南</div>
+				<img src="img/help.png" height='12px' style='float:left; margin-top:4px;'/>
+			</a>
+			<ul>
+				<li>color1</li>
+				<li>color2</li>
+			</ul>
+		</div>
+		<ul id='cameras'>
+			<li></li>
+			<li class="active"></li>
+			<li></li>
+			<li></li>
+		</ul>
+		
+		
+		<div id="action" class='action'>
+			<div id="video_act" class="action_btn">
+			</div>
+			<div id="rotate_act" class="action_btn">
+			</div>
+			<div id="eye_act" class="action_btn">
+			</div>
+		</div>
+	</div>
+</div>
+
+<script type="text/javascript" src="js/jquery-1.8.2.min.js"></script>
+<script src="js/screenfull_ori.js"></script>
+<script>
+	$(function() {
+		var target = document.getElementById('main');
+		document.getElementById('screen').addEventListener('click', function() {
+ 			if ( screenfull ) {
+ 				screenfull.toggle(target);
+
+
+ 			} else {
+ 				// Ignore or do something else
+ 			}
+ 		});
+		
+	});
+</script>
+<script type="text/javascript" src="lib/LAB.min.js"></script>
+<script type="text/javascript" src="boot.js">
+</script>
+</body>
+</html>

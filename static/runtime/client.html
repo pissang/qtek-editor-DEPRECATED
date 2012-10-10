@@ -1,0 +1,121 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>创建3D广告物料</title>
+<link href="edit.css" rel="stylesheet" type="text/css" />
+</head>
+<body>
+
+<div id="container">
+<div id="header">创建3D物料</div>
+<div id="main">
+	<div id="screen">
+		<img id='screenpic' src="img/fullscreen_2.png"/>
+	</div>
+	<div id='right'>
+		
+	<div class='patch'>
+		<div class='patch_head'>
+			基本信息blabla
+		</div>
+		<div class='patch_content'></div>
+	</div>
+	<div class='patch'>
+		<div class='patch_head'>
+			标签结点编辑
+		</div>
+		<div class='patch_content'>
+			<table>
+        		<tr>
+            		<th>序号</th>
+            		<th>标签名</th>
+            		<th>标签位置</th>
+            		<th>详情内容</th>
+        		</tr>
+    		</table>
+			
+    		<a href="javascript:void(0);" onclick="addRow();">增加</a>
+		</div>
+	</div>
+	
+	</div>
+	
+	<div id='nodeline'>
+		<div id='line'>
+			<img src="img/line.png" width='800px'/>
+		</div>
+		<ul>
+    	</ul>
+	</div>
+</div>
+</div>
+
+<script type="text/javascript" src="js/jquery-1.8.2.min.js"></script>
+<script type="text/javascript" src="js/jquery.tablednd.js"></script>
+<script src="js/screenfull_ori.js"></script>
+<script>
+	$(function() {
+		var target = document.getElementById('main');
+		document.getElementById('screen').addEventListener('click', function() {
+ 			if ( screenfull ) {
+ 				screenfull.toggle(target);
+ 			} else {
+ 				// Ignore or do something else
+ 			}
+ 		});
+		
+		//table
+		$('table').tableDnD();
+
+            $('ul').delegate('li', 'click', function() {
+                // set behavior to default
+                $('ul li img').attr('src','../img/smalldot.png');
+                // change the selected one
+                $(this).children().attr('src','../img/bigdot.png');
+				
+				var row_num=$(this).attr('row');
+				$('table tr').css('background','white');
+				$('table tr:eq('+(row_num-1)+')').css('background','silver');
+            });
+	});
+	
+	
+	//table
+	function activeNode(n) {
+            // set behavior to default
+            $('ul li img').attr('src','img/smalldot.png');
+            $('ul li:eq(' + (n - 1) + ') img').attr('src','img/bigdot.png');
+        }
+
+        function addRow() {
+            // append a row
+            var current_row_num = $('table tr').length;
+            var row_html = '<tr><td>' + (current_row_num) +'</td><td><input></input></td><td><input></input></td><td><input></input></td></tr>';
+
+            $('table').append($(row_html)).tableDnD({
+                onDrop: function(table, row) {
+                    $('table tr').each(function(index) {
+                        if (index == 0) {
+                            //first row is table head, skip it
+                            return;
+                        }
+                        $(this).find('td:first').text(index);
+                    })
+                    var row_num = $(row).find('td:first').text();
+                    activeNode(row_num);
+                },
+
+                onDragStart: function(table, row) {
+                    var row_num = $(row).find('td:first').text();
+                    activeNode(row_num);
+                }
+            });
+
+            // append a node
+            var node_html = '<li row=' + current_row_num + '><img src="img/smalldot.png"/></li>'
+            $('ul').append(node_html);
+        }
+</script>
+</body>
+</html>
