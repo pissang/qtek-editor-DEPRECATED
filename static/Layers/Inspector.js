@@ -312,25 +312,17 @@ define(['../UI/index', '../UI/Mixin/index', './Hub', './Project'], function(requ
 
 		}
 		else if(light instanceof THREE.PointLight){
-			var intensityView = createFloatView(light, 'intensity');
-			intensityView.model.set({
-				'min' : 0,
-				'max' : 10,
-				'step' : 0.01
-			})
+			var intensityView = createFloatView(light, 'intensity', 0, 10, 0.01);
 			container.appendView(intensityView);
-			var distanceView = createFloatView(light, 'distance');
-			distanceView.model.set({
-				'min': 0,
-				'step' : 0.1
-			})
+			
+			var distanceView = createFloatView(light, 'distance', 0, 1000, 0.1);
 			container.appendView(distanceView);
 		}
 		else if(light instanceof THREE.SpotLight){
 
 		}
 		else if(light instanceof THREE.DirectionalLight){
-
+			
 		}
 		//apply collapasable
 		UI.Mixin.Collapsable.applyTo(container);
@@ -344,7 +336,9 @@ define(['../UI/index', '../UI/Mixin/index', './Hub', './Project'], function(requ
 		
 		if( obj[key] ){
 			if( ! ( obj[key] instanceof THREE.DataTexture ) ){
-				view.model.set( 'texture', obj[key].image );
+				view.model.set( 'texture', obj[key] );
+				// todo 不能这样写死
+				view.model.set( 'filename', '/project/texture/'+obj[key].name);
 			}
 		}
 
@@ -362,7 +356,9 @@ define(['../UI/index', '../UI/Mixin/index', './Hub', './Project'], function(requ
 					data.needsUpdate = true;
 					hub.trigger('update:object', obj, key, data);
 
-					view.model.set('texture', data.image);
+					json = JSON.parse(json);
+					view.model.set('texture', data);
+					view.model.set('filename', json.uri);
 				}
 
 			}

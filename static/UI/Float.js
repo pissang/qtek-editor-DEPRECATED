@@ -75,6 +75,8 @@ define(function(require, exports, module){
 			}
 
 			this.model.on('change:value', this.updateValue, this);
+			this.model.on('change:max', this.updatePercent, this);
+			this.model.on('change:min', this.updatePercent, this);
 
 			this.model.on('change:name', function(){
 				this.$el.find('label').html(this.model.get('name'));
@@ -99,7 +101,7 @@ define(function(require, exports, module){
 				}));
 			}
 			//update the percent bar
-			this.updateValue();
+			this.updatePercent();
 		},
 
 		updateValue : function(){
@@ -111,6 +113,11 @@ define(function(require, exports, module){
 
 				this.$el.find('span').html(Math.round(this.model.get('value')*1000)/1000);
 			}
+			this.updatePercent();
+		},
+
+		updatePercent : function(){
+
 			var percent = (this.model.get('value') - this.model.get('min'))  / (this.model.get('max') - this.model.get('min'));
 			this.$el.find('.lblend-percent').width(percent * 100+'%');
 		},

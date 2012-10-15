@@ -591,3 +591,9 @@ li.asset-item .thumb{
 #Menu .menu li li:hover ul{
 	display: block;
 }
+
+/****共用属性*****/
+
+.drag-hover{
+	box-shadow: 0px 0px 4px blue;
+}

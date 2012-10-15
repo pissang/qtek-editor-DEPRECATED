@@ -11,7 +11,7 @@ define(function(require, exports, module){
 		defaults : {
 			name : '',
 			filename : 'none',	//文件位置
-			texture : null	//ImgDomElement
+			texture : null	//THREE.Texture
 		}
 	});
 
@@ -51,6 +51,9 @@ define(function(require, exports, module){
 				this.updateTexture();
 			}, this);
 
+			this.on('dispose', function(){
+				$('#texturepopup_'+this.textureID).remove();
+			})
 		},
 
 		render : function(){
@@ -86,8 +89,8 @@ define(function(require, exports, module){
 		updateTexture : function(){
 			var $el = this.$popup.find('.lblend-texture-popup-image')
 			$el.find('img').remove();
-			if(this.model.get('image')){
-				$el.append(this.model.get('image'))
+			if(this.model.get('texture')){
+				$el.append(this.model.get('texture').image)
 			}
 			else{
 				$el.append('<img clas=".lblend-texture-default" />');

@@ -43,7 +43,9 @@ define(function(require, exports, module){
 			if( json ){
 
 				var node = project.receiveDataTransfer( json , ['mesh', 'geometry']);
-				hub.trigger('add:node', node);
+				if(node){
+					hub.trigger('add:node', node);
+				}
 			}
 			
 		})
