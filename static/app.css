@@ -180,17 +180,20 @@ h1{
 }
 .inspector-material .lblend-texture{
 	box-sizing:border-box;
-	text-align: center;
 }
 .inspector-material .lblend-texture label{
 	line-height: 20px;
-	background-color: #4B4A57;
-	padding-left: 10px;
 	color:white;
 	display: inline-block;
 	box-sizing: border-box;
-	width:100%;
 	text-align: left;
+}
+.inspector-material .lblend-texture .lblend-texture-filename{
+	margin-left: 10px;
+	background-color: #AFBFD6;
+	padding: 1px 3px;
+	border-radius: 3px;
+	cursor:pointer;
 }
 /********Hierarchy********/
 #Hierarchy

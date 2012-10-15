@@ -537,7 +537,6 @@ define(['./Project', './Hub', './MouseEventDispatcher', '../UI/Panel'], function
 				var slot = 0;
 				return function(){
 					var geo = project.getAsset('/project/geometry/Cube').get('data');
-					console.log(geo);
 					var mesh = project.getGeometryInstance( geo );
 					return mesh;
 				}

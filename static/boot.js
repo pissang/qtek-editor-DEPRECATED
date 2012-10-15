@@ -8,7 +8,7 @@
 	// loading libs
 	$LAB.setOptions({'BasePath':libPath})
 		.script('sea.js')
-		.script('Three.min.js')
+		.script('THREE.min.js')
 		.script('loader/ColladaLoader.js')
 		.script('jquery.min.js').wait()
 		// jquery plugins
@@ -18,7 +18,7 @@
 		// jlayout
 		.script('jlayout/jquery.sizes.js').wait()
 		.script('jlayout/jlayout.grid.js').wait()
-		.script('jlayout/jlayout.flexGrid.js').wait()
+		.script('jlayout/jlayout.flexgrid.js').wait()
 		.script('jlayout/jquery.jlayout.js').wait()
 		.script('underscore.js')
 		.script('backbone.js')

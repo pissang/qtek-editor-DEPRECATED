@@ -269,7 +269,14 @@ define(['../UI/index', '../UI/Mixin/index', './Hub', './Project'], function(requ
 
 			// todo add other map and texture repeat
 			append( createTextureView( material, 'map') );
+			append( createTextureView( material, 'lightMap') );
 
+			if( material instanceof THREE.MeshPhongMaterial ){
+				append( createTextureView( material, 'normalMap') );
+			}
+			else{
+				append( createTextureView( material, 'specularMap') );
+			}
 		}
 		else{
 
@@ -342,7 +349,7 @@ define(['../UI/index', '../UI/Mixin/index', './Hub', './Project'], function(requ
 		}
 
 		// 拖拽添加纹理
-		view.el.addEventListener('drop', function(e){
+		view.popup.addEventListener('drop', function(e){
 
 			e.stopPropagation();
 			var json = e.dataTransfer.getData('text/plain');

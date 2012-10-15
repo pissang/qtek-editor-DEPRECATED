@@ -138,10 +138,9 @@
 .lblend-texture,
 .lblend-video{
 	margin:5px;
-
 }
-.lblend-texture img,
-.lblend-video video{
+.lblend-texture-popup img,
+.lblend-video-popup video{
 	width:180px;
 	height:180px;
 	background-color: #EEE;
@@ -154,8 +153,8 @@
 	 -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
 	background-size: 20px 20px;
 }
-.lblend-texture-default,
-.lblend-video-default{
+.lblend-texture-popup{
+	position:absolute;
 }
 /*color组件*/
 .lblend-color{

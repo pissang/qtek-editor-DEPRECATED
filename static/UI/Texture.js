@@ -5,9 +5,12 @@
 
 define(function(require, exports, module){
 
+	var textureID = 0;
+
 	var Model = Backbone.Model.extend({
 		defaults : {
 			name : '',
+			filename : 'none',	//文件位置
 			texture : null	//ImgDomElement
 		}
 	});
@@ -20,12 +23,19 @@ define(function(require, exports, module){
 
 		className : 'lblend-texture',
 
-		template : '<label class="lblend-texture-label">{{label}}</label><br />',
+		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-filename" data-html="model.filename"></span>',
+
+		popupTemplate : '<div class="lblend-texture-popup"><div class="lblend-texture-popup-image"></div></div>',
 
 		model : null,
 
+		$popup : null,
+		popup : null,
+
+		textureID : 0,
+
 		events : {
-			'click label' : 'toggleCollapse'
+			'click .lblend-texture-filename' : 'toggleImage'
 		},
 		
 		initialize : function(){
@@ -33,50 +43,58 @@ define(function(require, exports, module){
 			if( ! this.model){
 				this.model = new Model;
 			}
-
-			this.model.on('change:texture', function(model, value){
-
-				if(this.el){
-
-					this.$el.find('img').remove();
-					if( value ){
-
-						this.el.appendChild( value );
-					}else{
-
-						this.$el.append('<img class="lblend-texture-default" />');
-					}
-				}
-			}, this);
-
-			this.model.on('change:name', function(model, value){
-
-				this.$el.find('label').html( value );
-			}, this)
+			this.textureID = textureID++;
 
 			this.render();
+
+			this.model.on('change:texture', function(model, value){
+				this.updateTexture();
+			}, this);
+
 		},
 
 		render : function(){
 
-			this.el.innerHTML = _.template(this.template, {
+			this.$el.html( this.template );
 
-				label : this.model.get('name') || ''
-			});
-			if(this.model.get('texture')){
+			rivets.bind(this.$el, {model:this.model});
 
-				this.el.appendChild(this.model.get('texture'));
-			}else{
-				
-				//插入默认的棋盘格图片
-				this.$el.append('<img class="lblend-texture-default" />');
+			this.$popup = $(this.popupTemplate);
+			this.popup = this.$popup[0];
+
+			this.$popup.attr('id', 'texturepopup_'+this.textureID);
+			this.updateTexture();
+		},
+
+		toggleImage : function(){
+			var $el = $('#texturepopup_'+this.textureID);
+			if( $el.length ){
+				$el.remove();
+			}
+			else{
+				var offset = this.$el.offset();
+
+				this.$popup.css({
+					left : offset.left,
+					top : offset.top+this.$el.height()+2
+				})
+				$(document.body).append(this.$popup);
+			}
+
+		},
+
+		updateTexture : function(){
+			var $el = this.$popup.find('.lblend-texture-popup-image')
+			$el.find('img').remove();
+			if(this.model.get('image')){
+				$el.append(this.model.get('image'))
+			}
+			else{
+				$el.append('<img clas=".lblend-texture-default" />');
 			}
 		},
 
-		toggleCollapse : function(){
 
-			this.$el.find('img').toggle();
-		}
 	})
 
 	exports.View = View;

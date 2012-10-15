@@ -49,6 +49,11 @@ define(function(require, exports, module){
 			this.collection.on('remove', this._removeModel, this);
 
 			this.render();
+
+			//recursive
+			this.on('dispose', function(){
+				this.removeAll();
+			}, this);
 		},
 
 		$list : null,
@@ -160,12 +165,13 @@ define(function(require, exports, module){
 			});
 
 			// 
-			view.trigger('expose');
+			view.trigger('dispose');
 		},
 
 		removeAll : function(){
 			_.each(this._views, function(view){
 				view.$el.remove();	
+				view.trigger('dispose');
 			})
 			this._views = [];
 			this.collection.reset();

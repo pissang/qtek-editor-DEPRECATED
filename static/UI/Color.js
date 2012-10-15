@@ -22,23 +22,31 @@ define(function(require, exports, module){
 
 		template : '<label class="lblend-color-label">{{label}}</label><div class="lblend-color-picker"></div>',
 
+		$picker : null,
+
+		colorPickerId : '',
+
 		initialize : function(){
-			var self = this;
+
 			this.model.on('change:name', function(model, name){
-				self.$el.children('.lblend-color-label').html(name);
-			})
+				this.$el.children('.lblend-color-label').html(name);
+			}, this)
 			this.model.on('change:color', function(model, color, options){
-				var $picker = self.$el.find('.lblend-color-picker');
-				$picker.css({
+
+				this.$picker.css({
 					'background-color' : '#' + color.toString(16)
 				})
 				if(options.triggeronce){
 					return;
 				}
 				$picker.ColorPickerSetColor(color);
-			})
+			}, this)
 
 			this.render();
+
+			this.on('dispose', function(){
+				$('#'+this.colorPickerId).remove();
+			}, this)
 		},
 
 		render : function(){
@@ -63,6 +71,9 @@ define(function(require, exports, module){
 					'background-color' : '#' + color.toString(16)
 				})
 			}
+
+			this.$picker = $picker;
+			this.colorPickerId = this.$picker.data('colorpickerId');
 		}
 	})
 
