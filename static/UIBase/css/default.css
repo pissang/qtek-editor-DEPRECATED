@@ -1,0 +1,446 @@
+/*UI组件的样式*/
+
+@charset 'utf-8';
+/*Float组件*/
+.lblend-float{
+	background-color:#aaaaaa;
+	text-align:center;
+	margin :5px;
+	line-height:20px;
+	cursor: pointer;
+	position:relative;
+	border-radius: 5px;
+}
+
+.lblend-float .lblend-percent{
+	position: absolute;
+	left:0px;
+	top:0px;
+	bottom:0px;
+	z-index:-1px;
+	background-color: #888;
+	border-radius: 5px;
+}
+
+.lblend-float label{
+	min-width:70px;
+	float:left;
+	font-size:12px;
+	color:white;
+	position:relative;
+	font-family: Arial;
+	font-weight: bold;
+}
+
+.lblend-float span{
+	color:white;
+	position:relative;
+}
+
+.lblend-float input{
+	text-align : center;
+	background:none;
+	border :none;
+	position: relative;
+}
+
+/*Vector组件*/
+.lblend-vector{
+	margin : 2px 5px;
+	overflow: hidden;
+}
+.lblend-vector .lblend-vector-label{
+	margin:5px;
+	display: block;
+	color:rgb(202, 202, 202);
+}
+.lblend-vector .lblend-float{
+	border-radius : 0px;
+	margin : 0px;
+}
+.lblend-vector .lblend-float .lblend-percent{
+	border-radius: 0px;
+}
+.lblend-vector .lblend-float:first-child{
+	border-radius : 5px 5px 0px 0px;
+	margin : 0px;
+}
+.lblend-vector .lblend-float:first-child .lblend-percent{
+	border-radius: 5px 0px 0px 0px;
+}
+.lblend-vector .lblend-float:last-child{
+	border-radius : 0px 0px 5px 5px;
+	margin : 0px;
+}
+.lblend-vector .lblend-float:last-child .lblend-percent{
+	border-radius: 0px 0px 0px 5px;
+}
+
+/*Label组件*/
+.lblend-label{
+	margin:5px;
+	color:rgb(202, 202, 202);
+}
+/**
+ *Checkbox组件
+ * http://cssdeck.com/labs/css-checkbox-styles
+ */
+.lblend-checkbox{
+	margin:5px;
+	color:rgb(202, 202, 202);
+}
+.lblend-checkbox label{
+	margin-left: 10px;
+}
+
+/*Select组件*/
+.lblend-select{
+	margin:5px;
+}
+.lblend-select-label{
+	color:rgb(202, 202, 202);
+	float:left;
+}
+.lblend-select-dropdown{
+	display: inline-block;
+	position: relative;
+	margin-left: 20px;
+}
+.lblend-select-button.lblend-common-button{
+	display: inline-block;
+	position: relative;
+	line-height: 16px;
+	min-width: 50px;
+	font-size: 10px;
+	padding: 1px 5px;
+	margin-left: 10px;
+	text-align: center;
+	border-radius: 1px;
+	cursor: default;
+}
+.lblend-select-dropdown-list{
+	position: absolute;
+	top:28px;
+	padding:0px;
+	margin:0px;
+	background-color: #4D4D4D;
+	box-shadow: 1px 1px 10px black;
+}
+.lblend-select-dropdown-list li{
+	list-style: none;
+	line-height: 22px;
+	color:rgb(202, 202, 202);
+	padding:0px 10px;
+	cursor:pointer;
+}
+.lblend-select-dropdown-list li:hover{
+	background-color: #817878;
+}
+.lblend-select-dropdown-list li.selected{
+	color:white;
+	background-color: #312E2E;
+	border-left: 2px solid rgb(0, 255, 255);
+	box-sizing:border-box;
+	box-shadow: inset 0px 0px 3px black;
+}
+/*Texture和Video编辑组件*/
+.lblend-texture,
+.lblend-video{
+	margin:5px;
+}
+.lblend-texture-popup img,
+.lblend-video-popup video{
+	width:180px;
+	height:180px;
+	background-color: #EEE;
+	background-image: -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black), 
+	 -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
+	background-size: 20px 20px;
+	background-position: 0 0, 30px 30px;
+	background-color: #EEE;
+	background-image: -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black), 
+	 -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
+	background-size: 20px 20px;
+}
+.lblend-texture-popup{
+	position:absolute;
+	z-index: 10;
+	background-color: #494949;
+	border-radius: 5px;
+	box-shadow: 0px 0px 3px black;
+	padding:5px;
+}
+/*color组件*/
+.lblend-color{
+	margin:5px;
+}
+.lblend-color label{
+	color : #CACACA;
+	margin-right: 10px;
+	line-height: 20px;
+	vertical-align: top;	/*label和div在一块的时候怎么对齐？*/
+}
+.lblend-color-picker{
+	border: 3px solid grey;
+	border-radius: 3px;
+	width:60px;
+	height:15px;
+	display:inline-block;
+	position: relative;
+}
+/*Layer组件*/
+.lblend-layer{
+
+}
+.lblend-layer-label{
+	margin:0px;
+	line-height:20px;
+	padding-left:10px;
+	cursor: pointer;
+}
+/*Node组件*/
+.lblend-node{
+	background-color:#2a2e31;
+	border-radius : 6px;
+	box-shadow: 1px 1px 10px black;
+	/*opacity:0.95;*/
+	color:white;
+	/*border:1px solid black;*/
+	min-width:200px;
+	min-height: 40px;
+
+	/*background-image: -webkit-gradient(linear,left top,45% bottom,from(rgba(255,255,255,0.7)),color-stop(0.55,rgba(255,255,255,0.2)),color-stop(0.55,rgba(255,255,255,0)));*/
+}
+.lblend-node-label{
+	/*background-image:-webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.05) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.05) 75%, transparent 75%, transparent);
+	background-size: 40px 40px;*/
+	margin:0px;
+	background-color:#B82D49;
+	line-height:20px;
+	padding-left:10px;
+	border-radius : 6px 6px 0px 0px;
+	color : #C7C4C4;
+}
+
+.lblend-node .lblend-close{
+	position:absolute;
+	right:5px;
+	top:5px;
+	width:10px;
+	height:10px;
+	background-color:#2B4969;
+	border-radius:5px;
+	box-shadow:inset 1px 1px 2px black;
+	cursor:pointer;
+}
+
+.lblend-node canvas{
+	margin:10px;
+
+	background-color: #eee;
+	background-image: -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black), 
+	-webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
+	background-size:20px 20px;
+	background-position:0 0, 30px 30px; background-color: #eee;
+	background-image: -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black), 
+	-webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
+	background-size:20px 20px;
+	background-position:0 0, 30px 30px;
+}
+/*Tab组件*/
+.lblend-tab{
+	position: relative;
+}
+.lblend-tab-tabs{
+	margin:0px;
+	padding:0px;
+	height:20px;
+	position: relative;
+	background-color: #303030;
+	/*z-index: 1;*/
+}
+.lblend-tab-tabs li{
+	float:left;
+	list-style: none;
+	text-align: center;
+	min-width:70px;
+	padding:0px 10px;
+	line-height:20px;
+	background-color: #242325;
+	color:#97959c;
+	cursor:pointer;
+	margin-left: 5px;
+	box-sizing:border-box;
+	border-radius:5px 5px 0px 0px;
+	font-size: 10px;
+}
+.lblend-tab-tabs li.active{
+	background-color: #404040;
+	color:white;
+	box-shadow: 0px -2px 3px black;
+	/*margin-top:-5px;*/
+}
+.lblend-tab>.lblend-list{
+	/*margin-top:-1px;*/
+	/*border-top:1px solid #444347;*/
+	display: inline-block;
+	position: absolute;
+	top:20px;
+	bottom:0px;
+	left:0px;
+	right:0px;
+}
+
+/**************three view**********/
+.lblend-tree{
+	color:white;
+}
+.lblend-tree ul{
+	-webkit-transition : height 0.1s ease-in-out;
+}
+.lblend-tree li{
+	cursor:pointer;
+	line-height: 18px;
+}
+.lblend-tree li.active>.lblend-tree-title{
+	background-color: #1490D6;
+	box-shadow: 0px 0px 1px black;
+	border-radius: 5px;
+}
+.lblend-tree li.collapse>ul{
+	height:0px;
+	overflow: hidden;
+}
+.lblend-tree .lblend-tree-dragover{
+	box-shadow: 0px 0px 3px #57A1FF;
+	background: #172F4D;
+}
+.lblend-tree .lblend-tree-root ul ul{
+	margin-left: 16px;
+}
+.lblend-tree .lblend-tree-title{
+	white-space: nowrap;
+	padding: 2px 10px;
+	width: 100%;
+	display: inline-block;
+}
+.lblend-tree-folder>.lblend-tree-title{
+	font-weight: bold;
+}
+
+/*****************mixins*************/
+/*InputPin组件*/
+.lblend-pin-input{
+	position:absolute;
+
+	width:10px;
+	height:10px;
+	border-radius:5px;
+	box-shadow:inset 1px 1px 3px black;
+	background-color:yellow;
+
+}
+/*inputpin 组件在不同的参数组件中的位置*/
+.lblend-float .lblend-pin-input{
+	top:5px;
+	left:-10px;
+}
+.lblend-label .lblend-pin-input{
+	top:5px;
+	left:-10px;
+}
+/*OutputPin组件*/
+.lblend-pin-output{
+	position:absolute;
+
+	width:10px;
+	height:10px;
+	border-radius:5px;
+	box-shadow:inset 1px 1px 3px black;
+	background-color:yellow;
+}
+/*outputpin 组件在不同的参数组件中的位置*/
+.lblend-float .lblend-pin-output{
+	top:5px;
+	right:-10px;
+}
+.lblend-label .lblend-pin-output{
+	top:5px;
+	right:-10px;
+}
+/*Collasable*/
+.lblend-collapsable{
+	position: absolute;
+	left:5px;
+	top:7px;
+}
+.lblend-collapsable.unfold{
+	/*triangle point bottom*/
+	width: 0;
+	height: 0;
+	border-left: 5px solid transparent;
+	border-right: 5px solid transparent;
+	border-top: 10px solid #B4B4B4;
+}
+.lblend-collapsable.fold{
+	/*triangle point right*/
+	width: 0;
+	height: 0;
+	border-top: 5px solid transparent;
+	border-left: 10px solid #B4B4B4;
+	border-bottom: 5px solid transparent;
+}
+/*Scrollbale*/
+.lblend-scrollbar-x{
+	position:absolute;
+	left:0px;
+	bottom:0px;
+	width:100%;
+	height:10px;
+	padding-left: 5px;
+	padding-bottom: 5px;
+}
+.lblend-scrollbar-y{
+	position:absolute;
+	top:0px;
+	right:0px;
+	height:100%;
+	width:10px;
+	padding-right: 5px;
+	padding-left: 5px;
+}
+.lblend-scrollbar-x:hover .lblend-scrollbar-thumb,
+.lblend-scrollbar-y:hover .lblend-scrollbar-thumb{
+	opacity: 1
+}
+.lblend-scrollbar-thumb{
+	border-radius: 10px;
+	min-width: 10px;
+	min-height: 10px;
+	background-color: black;
+	position:absolute;
+	background-color: #8D8D8D;
+	box-shadow: 0px 0px 5px black;
+	opacity: 0.2;
+	-webkit-transition:0.15s opacity ease-in-out;
+	-moz-transition:0.15s opacity ease-in-out;
+	-o-transition:0.15s opacity ease-in-out;
+}
+
+/*Button的共用样式*/
+.lblend-common-button{
+	border-radius: 4px;
+	vertical-align: top;
+	color: #C7B9AA;
+	border: none;
+	line-height: 30px;
+	font-size: 14px;
+	background: -webkit-linear-gradient(#747474, #4D4D4D);
+	background: -moz-linear-gradient(#747474, #4D4D4D);
+	background: -o-linear-gradient(#747474, #4D4D4D);
+	box-shadow: inset 0 1px 0 #5B5957, 0 -1px 0 black, 0 1px 0 black, -1px 0 0 black, 1px 0 0 black, 0 1px 1px #111;
+}
+.lblend-common-button:active{
+    background: #272727;
+    box-shadow: inset 0 0 10px #070707, inset 0 0 5px #070707, 0 1px 0 #4B4947;
+}

@@ -8,7 +8,7 @@
 	// loading libs
 	$LAB.setOptions({'BasePath':libPath})
 		.script('sea.js')
-		.script('THREE.min.js')
+		.script('three.min.js')
 		.script('loader/ColladaLoader.js')
 		.script('jquery.min.js').wait()
 		// jquery plugins
@@ -16,10 +16,7 @@
 		.script('jquery.mousewheel.js')
 		.script('jquery-ui/js/jquery-ui-1.8.23.custom.min.js')
 		// jlayout
-		.script('jlayout/jquery.sizes.js').wait()
-		.script('jlayout/jlayout.grid.js').wait()
-		.script('jlayout/jlayout.flexgrid.js').wait()
-		.script('jlayout/jquery.jlayout.js').wait()
+		.script('jquery.layout.min.js').wait()
 		.script('underscore.js')
 		.script('backbone.js')
 		.script('rivets.js')
@@ -64,60 +61,69 @@
 		// dependencies
 		seajs.use([
 					//////// ui modules
-					'./UI/Button',
-					'./UI/Checkbox',
-					'./UI/Color',
-					'./UI/Float',
-					'./UI/index',
-					'./UI/Layer',
-					'./UI/Input',
-					'./UI/Label',
-					'./UI/Link',
-					'./UI/Node',
-					'./UI/Panel',
-					'./UI/Select',
-					'./UI/Texture',
-					'./UI/Vector',
-					'./UI/Video',
-					'./UI/Tab',
-					//////// ui mixins
-					'./UI/Mixin/index',
-					'./UI/Mixin/Pin',
-					'./UI/Mixin/Scrollable',
-					'./UI/Mixin/InputPin',
-					'./UI/Mixin/OutputPin',
-					'./UI/Mixin/Collapsable',
-					//////// ui layout
-					'./UI/Layout/Grid',
-					'./UI/Layout/Tab',
-					//////// node modules
-					'./Nodes/Base',
-					'./Nodes/Filter',
-					'./Nodes/index',
-					'./Nodes/Input/index',
-					'./Nodes/Input/Camera',
-					'./Nodes/Input/Scene',
-					'./Nodes/Input/Texture',
-					'./Nodes/Input/Video',
-					'./Nodes/Input/Timer',
-					'./Nodes/Viewer',
-					/////// layers
-					'./Layers/Hub',
-					'./Layers/Project',
-					'./Layers/MouseEventDispatcher',
-					'./Layers/Scene',
-					'./Layers/Compositor',
-					'./Layers/Script',
-					'./Layers/Sound',
-					'./Layers/Inspector',
-					'./Layers/Hierarchy',
-					'./Layers/Menu',
-					'./Layers/Console',
-					'./Layers/Animation',
-					'./Layers/Asset',
-					//////// app
+					'./UIBase/Button',
+					'./UIBase/Checkbox',
+					'./UIBase/Color',
+					'./UIBase/Float',
+					'./UIBase/index',
+					'./UIBase/Layer',
+					'./UIBase/Input',
+					'./UIBase/Label',
+					'./UIBase/Link',
+					'./UIBase/Node',
+					'./UIBase/Panel',
+					'./UIBase/Select',
+					'./UIBase/Texture',
+					'./UIBase/Tree',
+					'./UIBase/Vector',
+					'./UIBase/Video',
+					'./UIBase/Tab',
+					//////// UIBase mixins
+					'./UIBase/Mixin/index',
+					'./UIBase/Mixin/Pin',
+					'./UIBase/Mixin/Scrollable',
+					'./UIBase/Mixin/InputPin',
+					'./UIBase/Mixin/OutputPin',
+					'./UIBase/Mixin/Collapsable',
+					/////// Modules
+					'./Modules/Hub',
+					'./Modules/Project',
+					'./Modules/MouseEventDispatcher',
+					'./Modules/Scene',
+					'./Modules/Compositor',
+					//////// compositor nodes
+					'./Modules/Nodes/Base',
+					'./Modules/Nodes/Filter',
+					'./Modules/Nodes/index',
+					'./Modules/Nodes/Input/index',
+					'./Modules/Nodes/Input/Camera',
+					'./Modules/Nodes/Input/Scene',
+					'./Modules/Nodes/Input/Texture',
+					'./Modules/Nodes/Input/Video',
+					'./Modules/Nodes/Input/Timer',
+					'./Modules/Nodes/Viewer',
+					'./Modules/Script',
+					'./Modules/Sound',
+					'./Modules/Inspector',
+					'./Modules/Hierarchy',
+					'./Modules/Menu',
+					'./Modules/Console',
+					'./Modules/Animation',
+					'./Modules/Project',
+					///////////Asset
+					'./Modules/Assets/Util',
+					'./Modules/Assets/FileSystem',
+					'./Modules/Assets/Geometry',
+					'./Modules/Assets/Material',
+					'./Modules/Assets/Texture',
+					'./Modules/Assets/TextureCube',
+					'./Modules/Assets/Prefab',
+					'./Modules/Assets/Importer/Binary',
+					'./Modules/Assets/Importer/JSON',
+					'./Modules/Layouts',
+					////////app 
 					'./svg',
-					'./config'
+					'./config',
 				], function(){
 			
 			seajs.use('./app')
