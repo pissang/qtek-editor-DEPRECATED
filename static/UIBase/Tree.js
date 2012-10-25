@@ -5,14 +5,15 @@
 define(function(require, exports, module){
 
 	// data structure
-	// + type : file|folder
+	// + type : 		file|folder
 	// + name : ""
-	// + icon : "" 	icon class
+	// + icon : "" 		icon class
 	// + owner
 	// + children : []	if type is folder
-	// + meta :
-	// + + source
-	// + + assetType | nodeType
+	// + dataSource 	asset path or scene node json data
+	// + dataType 		type of binded asset or node
+	//
+	// dataSource and dataType is maily for the dataTransfer
 	var Model = Backbone.Model.extend({
 		defaults : {
 			json : []
@@ -25,7 +26,7 @@ define(function(require, exports, module){
 		this.name = name;
 		this.owner = "";
 
-		this.meta = {};	//json source
+		this.acceptConfig = {};
 
 		this.$el = null;
 	}
@@ -53,6 +54,8 @@ define(function(require, exports, module){
 		var $el = $(html);
 		this.$el = $el;
 
+		$el.data('path', this.getPath() );
+
 		var self = this;
 
 		// draggable
@@ -60,16 +63,9 @@ define(function(require, exports, module){
 
 			e.stopPropagation();
 
-			var data = self.meta.dataTransfer;
-			if( _.isFunction(data) ){
-				data = data();
-			}
-			e.dataTransfer.setData('text/plain', JSON.stringify({
-				path : self.getPath(),
-				owner : self.owner,
-				data : self.meta.dataTransfer
-			}))
-		}, false);
+			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
+		}, false)
+
 
 		$el.click(function(e){
 			e.stopPropagation();
@@ -111,6 +107,19 @@ define(function(require, exports, module){
 			this.getRoot().trigger('updated:name', this, name);
 		}
 	}
+	File.prototype.toJSON = function(){
+		var item = {
+			type : this.type,
+			name : this.name,
+			path : this.getPath(),
+			icon : this.icon,
+			owner : this.owner,
+			dataSource : _.isFunction(this.dataSource) ? this.dataSource() : this.dataSource,
+			dataType : this.dataType
+		}
+
+		return item;
+	}
 
 	var Folder = function(name){
 
@@ -119,13 +128,38 @@ define(function(require, exports, module){
 
 		this.owner = '';	//distinguish different trees
 
-		this.meta = {};	//meta data
-
-
 		this.children = [];
 
 		this.$el = null;
 		this.$sub = null;
+
+		// config to verify if this folder can accept
+		// any transferred data
+		this.acceptConfig = {
+			'default' : {
+				// an verify function
+				accept : function(json){
+					if( ! (json instanceof FileList) ){
+						if( json.owner == this.owner ){
+							return true;
+						}
+					}
+				},
+				// action after verify succeed
+				accepted : function(json){
+					// default action after target is dropped and accepted
+					// move an other node to the folder
+					var node = this.getRoot().find(json.path);
+
+					if( node){
+						if( node.parent != self ){
+							this.add(node);
+						}
+					}
+				}
+
+			}
+		}
 	}
 
 	_.extend(Folder.prototype, Backbone.Events);
@@ -215,6 +249,8 @@ define(function(require, exports, module){
 		var $el = $(html),
 			$ul = $el.children('ul');
 
+		$el.data('path', this.getPath());
+
 		var self = this;
 		_.each(this.children, function(child){
 			$ul.append( child.genElement() );
@@ -225,15 +261,7 @@ define(function(require, exports, module){
 
 			e.stopPropagation();
 
-			var data = self.meta.dataTransfer;
-			if( _.isFunction(data) ){
-				data = data();
-			}
-			e.dataTransfer.setData('text/plain', JSON.stringify({
-				path : self.getPath(),
-				owner : self.owner,
-				data : self.meta.dataTransfer
-			}))
+			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
 		}, false)
 
 		$el.click(function(e){
@@ -250,66 +278,15 @@ define(function(require, exports, module){
 		this.$el = $el;
 		this.$sub = $ul;
 
-		// folder and file drag in the same tree
-		self.accept(function(json, e){
-			if( ! ( json instanceof FileList) ){ // not from native file
-				if(json.owner == self.owner){ // from the same tree
-					var node = self.getRoot().find(json.path);
-
-					if( node){
-						if( node.parent != self ){
-							self.add(node);
-						}
-					}
-				}
-			}
-		})
-
 		return $el;
 	}
 
-	//===============
-	// data acceptable, need to move to root
-	//===============
-	Folder.prototype.accept = function(drop, dragenter, dragleave){
-		// todo dragover有闪烁，移到某些地方会触发dragleave 待解决
-		// dragover的时候能不能getDataTransfer ?
-		this.$el[0].addEventListener('dragover', function(e){
-			e.stopPropagation();
-			e.preventDefault();
+	// default accept judgement
 
-			$(this).addClass('lblend-tree-dragover');
-
-			dragenter && dragenter(e);
-		});
-		this.$el[0].addEventListener('dragleave', function(e){
-			e.stopPropagation();
-			e.preventDefault();
-
-			$(this).removeClass('lblend-tree-dragover');
-
-			dragleave && dragleave(e);
-
-		});
-		this.$el[0].addEventListener('drop', function(e){
-			e.stopPropagation();
-			e.preventDefault();
-			$(this).removeClass('lblend-tree-dragover');
-
-			var data;
-			if(e.dataTransfer.files.length){
-				// data from native files
-				data = e.dataTransfer.files;
-			}else{
-				data = JSON.parse(e.dataTransfer.getData('text/plain'));
-			}
-
-			drop && drop(data, e);
-		}, false );
-	}
-
-	Folder.prototype.reject = function(callback){
-		this.$el[0].removeEventListener('drop', callback);
+	Folder.prototype.accept = function(accept, accepted){
+		this.acceptConfig.push({
+			accept : accepted
+		})
 	}
 
 	Folder.prototype.select = function(){
@@ -389,8 +366,9 @@ define(function(require, exports, module){
 
 				var folder = new Folder(item.name);
 
-				folder.meta = item;
 				folder.icon = item.icon;
+				folder.dataSource = item.dataSource;
+				folder.dataType = item.dataType;
 
 				self.add(folder);
 
@@ -402,12 +380,32 @@ define(function(require, exports, module){
 			else if( item.type == 'file' ){
 
 				var file = new File(item.name);
-				file.meta = item;
+
 				file.icon = item.icon;
+				file.source = item.source;
+				file.targetType = item.targetType;
 
 				self.add(file);
 			}
 		})
+	}
+
+	Folder.prototype.toJSON = function(){
+		var item = {
+			type : this.type,
+			name : this.name,
+			path : this.getPath(),
+			icon : this.icon,
+			owner : this.owner,
+			dataSource : _.isFunction(this.dataSource) ? this.dataSource() : this.dataSource,
+			dataType : this.dataType,
+			children : []
+		}
+
+		_.each(this.children, function(child){
+			this.children.push( child.toJSON() );
+		})
+		return item;
 	}
 
 	Folder.prototype.createFolder = function(path, silent){
@@ -476,7 +474,15 @@ define(function(require, exports, module){
 
 		root : null,
 
+		events : {
+			'dragenter li' : 'dragenterHandler',
+			'dragleave li' : 'dragleaveHandler',
+			'drop li' : 'dropHandler'
+		},
+
 		initialize : function(){
+			var self =this;
+
 			if( ! this.model ){
 				this.model = new Model;
 			};
@@ -491,6 +497,21 @@ define(function(require, exports, module){
 			}, this);
 
 			this.render();
+
+			this._dragenter = [];
+			this._dragleave = [];
+			this._drop = [];
+			// folder and file drag in the same tree
+			this.drop(function(json, e){
+				
+				var node = self.find($(this).data('path'));
+				
+				_.each(node.acceptConfig, function(config){
+					if( config.accept.call(node, json) ){
+						config.accepted.call(node, json);
+					}
+				})
+			})
 		},
 
 		render : function(){
@@ -520,7 +541,68 @@ define(function(require, exports, module){
 				})
 			}
 			this.root.find(path).select();
+		},
+
+		_dragenter : [],
+
+		_dragleave : [],
+
+		_drop : [],
+
+		dragenterHandler : function(e){
+			e.stopPropagation();
+			e.preventDefault();
+
+			$(e.currentTarget).addClass('lblend-tree-dragover');
+
+			_.each(this._dragenter, function(func){
+				func.call(e.currentTarget, e);
+			})
+		},
+
+		dragleaveHandler : function(e){
+			e.stopPropagation();
+			e.preventDefault();
+
+			$(e.currentTarget).removeClass('lblend-tree-dragover');
+
+			var self = this;
+			_.each(this._dragleave, function(func){
+				func.call(e.currentTarget, e);
+			})
+		},
+
+		dropHandler : function(e){
+			e.stopPropagation();
+			e.preventDefault();
+
+			$(e.currentTarget).removeClass('lblend-tree-dragover');
+
+			var data;
+			if(e.dataTransfer.files.length){
+				// data from native files
+				data = e.dataTransfer.files;
+			}else{
+				data = JSON.parse(e.dataTransfer.getData('text/plain'));
+			}
+			_.each(this._drop, function(func){
+				func.call(e.currentTarget, data, e);
+			})
+		},
+
+		drop : function(drop, dragenter, dragleave){
+			
+			if( drop ){
+				this._drop.push(drop);
+			}
+			if( dragenter ){
+				this._dragenter.push(dragenter);
+			}
+			if( dragleave ){
+				this._dragleave.push(dragleave);
+			}
 		}
+
 	})
 
 

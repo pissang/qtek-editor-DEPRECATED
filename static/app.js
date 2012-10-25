@@ -42,7 +42,7 @@ define(function(require){
 	});
 	document.body.addEventListener('drop', function(e){
 
-		e.prefentDefault();
+		e.preventDefault();
 		e.stopPropagation();
 	})
 

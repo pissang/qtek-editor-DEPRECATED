@@ -8,6 +8,7 @@ define(function(require, exports, module){
 	UIBase.Mixin = require('../UIBase/Mixin/index');
 	var hub = require('./Hub').getInstance();
 	var Assets = require('./Assets/index');
+	var FS = Assets.FileSystem;
 
 	var view,
 		treeView,
@@ -42,7 +43,6 @@ define(function(require, exports, module){
 
 	function handleHubEvent(){
 		hub.on('created:scene', function(_scene){
-
 			scene = _scene;
 
 			treeView.model.set('json', [{
@@ -50,6 +50,7 @@ define(function(require, exports, module){
 				name : scene.name,
 				icon : 'icon-node icon-small'
 			}])
+			_.extend(treeView.find('/'+scene.name).acceptConfig, acceptConfig.node);
 		})
 		// update scene
 		hub.on('added:node', function(node, parent){
@@ -76,6 +77,26 @@ define(function(require, exports, module){
 		})
 	}
 
+	var acceptConfig = {
+		'node' : {
+			'prefab' : {
+				accept : function(json){
+					if( ! (json instanceof FileList) ){
+						// data from project assets
+						if(json.owner == 'project' && json.dataType == 'prefab'){
+							return true;
+						}
+					}
+				}, 
+				accepted : function(json){
+					var node = FS.root.find(json.dataSource).data.getInstance();
+					var parentNode = Assets.Util.findSceneNode( this.getPath(), scene );
+					hub.trigger('add:node', node, parentNode );
+				}
+			}
+		}
+	}
+
 	function initTreeView(){
 
 		treeView.on('moved:node', function(parent, parentPrev, node){
@@ -83,7 +104,10 @@ define(function(require, exports, module){
 			hub.trigger('add:node', sceneNode, parent.getPath(), true );
 		})
 
-		
+		treeView.on('selected:node', function(node){
+			var sceneNode = Assets.Util.findSceneNode( node.getPath(), scene);
+			hub.trigger('select:node', sceneNode);
+		})
 	}
 
 	function createTreeNode( sceneNode ){
@@ -102,6 +126,8 @@ define(function(require, exports, module){
 		else if( sceneNode instanceof THREE.Object3D ){
 			var node = new UIBase.Tree.Folder(sceneNode.name);
 			node.icon = 'icon-small icon-node';
+			_.extend(node.acceptConfig, acceptConfig.node);
+
 		}
 		return node;
 	}

@@ -10,7 +10,7 @@ define(function(require, exports, module){
 		this.type = 'file';
 		this.name = name || '';
 		
-		this.target = null;
+		this.data = null;
 		if(asset){
 			this.attach( asset, true );
 		}
@@ -35,14 +35,14 @@ define(function(require, exports, module){
 		}
 	}
 	File.prototype.attach = function(asset, silent){
-		this.target = asset;
+		this.data = asset;
 
 		if( ! silent){
 			this.getRoot().trigger('attached:asset', this, asset);
 		}
 	}
 	File.prototype.detach = function(silent){
-		this.target = null;
+		this.data = null;
 
 		if( ! silent){
 			this.getRoot().trigger('detached:asset', this);

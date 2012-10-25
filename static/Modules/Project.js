@@ -89,10 +89,15 @@ define(function(require, exports, module){
 
 			if( node.type == 'folder'){
 				var treeNode = new UIBase.Tree.Folder(node.name);
+				
 				treeNode.icon = 'icon-project-folder icon-small';
 			}else{
 				var treeNode = new UIBase.Tree.File(node.name);
 				treeNode.icon = 'icon-project-file icon-small';
+			}
+			if(node.data){
+				treeNode.dataSource = node.getPath();									
+				treeNode.dataType = node.data.type;
 			}
 			treeView.find( parent.getPath() ).add( treeNode, true);
 		})
