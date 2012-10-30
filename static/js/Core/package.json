@@ -1,0 +1,12 @@
+{
+	"name" : "Core",
+	"output" : {
+		"index.js" : "*"
+	},
+	"spmConfig" : {
+		"build" : {
+			"src" : "../Core",
+			"to" : "../../../static-dist/js/Core"
+		}
+	}
+}

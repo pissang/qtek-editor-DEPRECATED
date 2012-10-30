@@ -1,0 +1,579 @@
+@charset 'utf-8';
+
+html{
+	height:100%;
+}
+body{
+	font-family:Arial;
+	font-size:10px;
+	margin:0px;
+	/*overflow: hidden;*/
+	background-color:#191919;
+	overflow: hidden;
+	height:100%;
+}
+*{
+	-webkit-user-select: none;
+	-moz-user-select: none;
+}
+ul{
+	margin:0px;
+	padding:0px;
+}
+li{
+	list-style: none;
+}
+input,
+#Console *{
+
+	-webkit-user-select: auto;
+	-moz-user-select: auto;
+	background-color:#3C3C3C;
+	border:none;
+	color:white;
+}
+
+h1{
+	position: absolute;
+	right:20px;
+	top:5px;
+	margin:0px;
+	color:rgb(155, 155, 155);
+}
+
+.copyright{
+	position: absolute;
+	right:10px;
+	bottom:10px;
+	color:rgb(155, 155, 155);
+	font-size: 14px;
+	z-index: 1000;
+}
+
+#App{
+	width:100%;
+	height:100%;
+}
+
+.ui-layout-container{
+	width:100%;
+	height:100%;
+}
+.region{
+	height:100%;
+}
+/*******Panels************/
+.lblend-panel{
+	background-color: #404040;
+	box-shadow: 0px 1px 8px black;
+}
+.lblend-panel-label{
+	display:none;
+}
+
+.lblend-tab{
+	height:100%;
+}
+
+/*******Editor************/
+#SceneEditor{
+	width:100%;
+	height:100%;
+}
+#SceneEditor canvas{
+	background: -moz-linear-gradient(top, #7d7e7d 0%, #292929 100%); /* FF3.6+ */
+	background: -webkit-linear-gradient(top, #7d7e7d 0%,#292929 100%); /* Chrome10+,Safari5.1+ */
+	background: -o-linear-gradient(top, #7d7e7d 0%,#292929 100%); /* Opera 11.10+ */
+}
+/*********Animation*******/
+#Animation{
+	height:100%;
+}
+/*********Console*********/
+#Console{
+	height:100%;
+	padding:5px;
+	box-sizing:border-box;
+}
+#Console .lblend-list{
+	height:100%;
+	box-shadow: inset 1px 1px 3px black;
+	display:inline-block;
+	width:100%;
+	color:#D5D5D5;
+	padding:5px;
+	box-sizing:border-box;
+}
+
+/********Hierarchy********/
+#Hierarchy
+{
+	width:100%;
+	height:100%;
+}
+#Hierarchy .lblend-list
+{
+	position: relative;
+	display: inline-block;
+	width:100%;
+}
+#Hierarchy .lblend-tree{
+	margin:5px 5px 0px -5px;
+}
+#Hierarchy .icon-node{
+	background-image:url(../img/icons/treeview.png);
+}
+#Hierarchy .icon-camera{
+	background-image:url(../img/icons/camera3.png);
+}
+#Hierarchy .icon-light	{
+	background-image:url(../img/icons/sun.png);
+}
+#Hierarchy .icon-delete {
+	background-image: url(../img/icons/remove2.png);
+}
+#Hierarchy .icon-visible {
+	background-image: url(../img/icons/eye.png);
+}
+#Hierarchy .icon-unfold{
+	background-image: url(../img/icons/arrow-down1.png);
+	margin-right: 0px;
+}
+#Hierarchy .icon-fold{
+	background-image: url(../img/icons/arrow-right1.png);
+	margin-right: 0px;
+}
+/********Project**********/
+#Project{
+	width:100%;
+	height:100%;
+}
+#Project .lblend-list{
+	/*why?????不舍成inline-block的话就会被截断*/
+	display: inline-block;
+}
+#Project .lblend-tree{
+	margin:5px 5px 0px -5px;
+}
+#Project .icon-small{
+	margin-right: 5px;	
+}
+#Project .icon-project-folder{
+	background-image: url(../img/icons/folder.png);
+}
+#Project .icon-project-file{
+	background-image: url(../img/icons/cog.png);
+}
+#Project .icon-unfold{
+	background-image: url(../img/icons/arrow-down1.png);
+	margin-right: 0px;
+}
+#Project .icon-fold{
+	background-image: url(../img/icons/arrow-right1.png);
+	margin-right: 0px;
+}
+/********Inspector********/
+#Inspector
+{
+	width:100%;
+	height:100%;
+	box-sizing:border-box;
+}
+#Inspector>.lblend-list{
+	margin:0px 5px;
+	min-width: 390px;
+}
+#Inspector .lblend-layer{
+	margin-bottom: 4px;
+	background-color: #2E2E2E;
+	border-radius: 5px;
+	padding-bottom: 10px;
+}
+#Inspector .lblend-layer-label{
+	line-height: 25px;
+	color:rgb(226, 226, 226);
+	background-color: #4B4A57;
+	border-radius: 5px 5px 0px 0px;
+}
+#Inspector .lblend-float{
+	width:200px;
+}
+#Inspector .lblend-vector .lblend-float{
+	width:120px;
+}
+#Inspector .lblend-checkbox,
+#Inspector .lblend-select,
+#Inspector .lblend-texture,
+#Inspector .lblend-color{
+	border-bottom: 1px solid #242323;
+	border-top: 1px solid #3A3A3A;
+	padding:5px;
+	margin:0px;
+	box-sizing:border-box;
+}
+
+/****object的名字***********/
+#Inspector .lblend-layer.inspector-name{
+	height:35px;
+	margin-bottom: 0px;
+	background: none;
+	box-shadow: none;
+	padding-right: 20px;
+	box-sizing:border-box;
+}
+.inspector-name input{
+	line-height: 20px;
+	width:100%;
+	margin-top: 5px;
+	padding-left: 10px;
+	box-shadow: 1px 1px 5px black inset;
+	border-radius: 4px;
+}
+/****transform的属性编辑****/
+.inspector-transform >.lblend-list{
+}
+.inspector-transform .lblend-vector{
+	display: inline-block;
+	width:120px;
+}
+.inspector-transform .lblend-vector .lblend-float:first-child{
+	border-radius : 5px 5px 0px 0px;
+}
+.inspector-transform .lblend-vector .lblend-float:last-child{
+	border-radius : 0px 0px 5px 5px;
+}
+/****light的属性编辑*****/
+.inspector-light >.lblend-list{
+}
+/****material属性编辑****/
+.inspector-material>.lblend-list{
+}
+.inspector-material .lblend-texture{
+	box-sizing:border-box;
+}
+.inspector-material .lblend-texture label{
+	line-height: 20px;
+	color:white;
+	display: inline-block;
+	box-sizing: border-box;
+	text-align: left;
+}
+.inspector-material .lblend-texture .lblend-texture-filename{
+	margin-left: 10px;
+	background-color: #AFBFD6;
+	padding: 1px 3px;
+	border-radius: 3px;
+	cursor:pointer;
+}
+/****后期合成编辑器****/
+#Compositor{
+
+	width:100%;
+	height:100%;
+	/*overflow: scroll;*/
+
+	background-image: -webkit-linear-gradient( rgba(255,255,255,.3) 1px, transparent 1px),
+	-webkit-linear-gradient(0deg, rgba(255,255,255,.3) 1px, transparent 1px),
+	-webkit-linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px),
+	-webkit-linear-gradient(0deg, rgba(255,255,255,.1) 1px, transparent 1px);
+	background-size:100px 100px, 100px 100px, 20px 20px, 20px 20px;
+	background-position:-2px -2px, -2px -2px, -1px -1px, -1px -1px;
+
+	position: absolute;
+}
+/****asset********/
+.asset{
+	height:100%;
+	position: relative;
+}
+.asset>.lblend-list{
+	width:100%;
+}
+.asset>.lblend-list>.lblend-layer{
+	margin: 10px;
+	background-color: #2E2E2E;
+	border-radius: 5px;
+}
+.asset>.lblend-list>.lblend-layer h5{
+	color:white;
+	line-height:25px;
+	background-color: #4B4A57;
+	border-radius: 5px 5px 0px 0px;
+}
+
+.asset-list {
+}
+/*http://www.red-team-design.com/how-to-create-slick-effects-with-css3-box-shadow*/
+li.asset-item{
+	display:inline-block;
+
+	width:120px;
+	height:140px;
+	margin:10px;
+	border-radius: 5px;
+	text-align: center;
+	position:relative;
+}
+/*http://css-tricks.com/pseudo-element-roundup/*/
+/*设为-1的时候会被其它元素覆盖，这是为什么啊!*/
+li.asset-item::before, li.asset-item::after 
+{
+  z-index: -1; 
+  position: absolute; 
+  content: "";
+  bottom: 15px;
+  left: 10px;
+  width: 50%; 
+  top: 80%;
+  max-width:300px;
+  background: #404040; 
+}
+
+li.asset-item.ondrag{
+	opacity:0.2;
+}
+li.asset-item .thumb{
+	width:100px;
+	height:100px;
+	margin-top: 10px;
+}
+.asset>.lblend-list>.lblend-layer li.asset-item h5{
+	margin:7px 0px;
+	color:white;
+	background: none;
+}
+.asset .asset-list .lblend-layer li:hover{
+	background-color:#7b9ddd;
+	box-shadow: 2px 2px 10px black;
+}
+
+/****Animation*****/
+#Animation{
+}
+#Animation>.lblend-list{
+	width:100%;
+	height:100%;
+	position:relative;
+}
+#Animation .column-1{
+	width:25%;
+	border-radius: 5px;
+
+	position:absolute;
+	top:0px;
+	left:0px;
+	bottom:0px;
+}
+#Animation .column-2{
+	border-radius: 5px;
+	background-color: #727272;
+	display: inline-block;
+	
+	position: absolute;
+	right:0px;
+	top:0px;
+	bottom:0px;
+	left:25%;
+}
+#Animation .column-2>.lblend-layer{
+	width:100%;
+	height:100%;
+}
+#AnimationControl{
+	height:40px;
+}
+#AnimationProperties{
+	position:absolute;
+	right:0px;
+	bottom:0px;
+	left:0px;
+	top:40px;
+}
+#AnimationPropertyList{
+	margin-top:3px;
+}
+#AnimationPropertyList li{
+	color: white;
+	padding: 0px 10px;
+	line-height: 20px;
+	background-color: #969696;
+	border-left: 3px solid #17177E;
+	margin-bottom: 1px
+}
+#AnimationTimeline{
+	height:40px;
+	background-color:#2C2B2B;
+	position:relative;
+}
+.timeline-scale{
+	margin-top:10px;
+	background-color: #353535;
+	box-shadow: 0px 0px 2px black;
+}
+#AnimationTracks{
+	box-shadow: inset 1px 1px 5px black;
+	position:absolute;
+	right:0px;
+	bottom:0px;
+	left:0px;
+	top:40px;
+}
+#AnimationTrackList{
+	margin-top:3px;
+}
+#AnimationTrackList li{
+	height: 20px;
+	background-color: #555;
+	box-shadow: 0px 0px 3px black;
+	margin-bottom: 1px;
+	position:relative
+}
+
+#AnimationTrackList .keypoint{
+	width:10px;
+	height:10px;
+	position:absolute;
+	top:5px;
+	margin-left: -5px;
+	background-color: red;
+	border-radius: 3px;
+	box-shadow: 1px 1px 3px black;
+}
+#AnimationTrackList .keypoint-snap{
+	width:10px;
+	height:10px
+}
+
+#AnimationTimelineContainer .lblend-list{
+	bottom:0px;
+}
+#KeyframeHandle{
+	position:absolute;
+	top:0px;
+	bottom:0px;
+	width:0px;
+	left:0px;
+}
+#KeyframeHandle .slider{
+	position:absolute;
+	left:-6px;
+	top:6px;
+	width:10px;
+	height:20px;
+	background-color: #a89035;
+
+	border:1px solid black;
+	box-shadow: 1px 1px 3px black;
+	border-radius: 0px 0px 5px 5px;
+}
+#KeyframeHandle .line{
+	position: absolute;
+	top:27px;
+	bottom:0px;
+	border-left:1px solid red
+}
+#KeyframeHandle .keyframeTime{
+	min-width: 40px;
+	line-height: 18px;
+	left: 8px;
+	background-color: black;
+	top: 7px;
+	color: white;
+	padding: 0px 3px;
+	position: absolute;
+	font-size: 8px;
+	box-shadow: 1px 1px 3px black;
+	border-radius: 5px;
+}
+/****Header*****/
+#Header{
+	position: relative;
+	z-index: 10;
+	margin-bottom: 5px;
+}
+/********css3 dropdown menu**********/
+/*http://webdesignerwall.com/tutorials/css3-dropdown-menu*/
+#Menu
+{
+
+}
+#Menu ul{
+
+}
+#Menu li
+{
+	position:relative;
+	color:#97959c;
+	text-align: left;
+	box-sizing:border-box;
+	cursor: pointer;
+	color:#C9C9C9;
+}
+#Menu li a{
+	padding-left: 10px;
+}
+/*第一层级*/
+#Menu .menu>li
+{
+	display: inline-block;
+	width:80px;
+	line-height: 25px;
+	margin-left: -1px;
+}
+#Menu .menu>li:hover{
+	background-color: #929292;
+	color:white;
+}
+#Menu .menu >li>ul{
+	position: absolute;
+	top:26px;
+}
+#Menu .menu >li.active >ul{
+	display: block;
+}
+/*后面几个层级*/
+#Menu .menu ul
+{
+	display: none;
+	width:100px;
+	background-color: #525050;
+	border-radius: 0px 5px 5px 5px;
+}
+#Menu .menu ul li{
+	margin-bottom: -1px;
+	line-height: 25px;
+}
+#Menu .menu ul li a span.icon-menu-parent{
+	background-image: url(img/icons/arrow-right1.png);
+	float:right;
+	margin-right: 5px;
+	margin-top: 4px;
+}
+#Menu .menu li ul ul{
+	position: absolute;
+	left:98px;
+	top: 0px;
+}
+#Menu .menu li li:hover{
+	border-left:2px solid cyan;
+	box-sizing:border-box;
+	background-color: #929292;
+	color:white;
+}
+#Menu .menu li li.active ul{
+	display: block;
+}
+
+/****共用属性*****/
+
+.drag-hover{
+	box-shadow: 0px 0px 4px blue;
+}
+
+/****图标******/
+.icon-small{
+	background-size:12px 12px;
+	width:12px;
+	height:12px;
+	display: inline-block;
+}
