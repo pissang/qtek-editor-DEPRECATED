@@ -1,0 +1,4654 @@
+//====================
+// Hub.js
+// 整个程序的消息收发中介
+// Signal.js?
+//====================
+define("Core/Hub-debug", [], function(require, exports, module){
+
+	var hub = null;
+	
+	function getInstance(){
+		
+		if( ! hub){
+
+			hub = {};
+			_.extend(hub, Backbone.Events);
+		}
+
+		return hub;
+	}
+
+	return {
+		getInstance : getInstance
+	}
+})
+
+//==========================
+//svg 操作的简单类
+//===========================
+define("Core/svg-debug", [], function(require, exports, module){
+
+	var xmlns = 'http://www.w3.org/2000/svg';
+
+	exports.create = function(tag){
+
+		return document.createElementNS(xmlns, tag);
+	};
+
+	exports.attr = function(elem, attr, value){
+		var attrs = attr;
+		if(_.isString(attr)){
+			attrs = {};
+			attrs[attr] = value;
+		}
+		_.each(attrs, function(value, attr){
+
+			elem.setAttributeNS(null, attr, value);
+		})
+	}
+})
+
+//==========================================
+//index.js
+//加载当前目录下的所有组件
+//==========================================
+define("Core/Assets/index-debug", ["./Geometry-debug", "./Material-debug", "./Prefab-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug", "./FileSystem-debug", "./Importer/index-debug", "./Importer/Binary-debug", "./Importer/Collada-debug", "./Importer/JSON-debug", "./Importer/Zip-debug"], function(require, exports, module){
+
+	exports.Geometry 	= require('./Geometry-debug');
+	exports.Material 	= require('./Material-debug');
+	exports.Prefab 		= require('./Prefab-debug');
+	exports.Texture 	= require('./Texture-debug');
+	exports.TextureCube = require('./TextureCube-debug');
+	exports.FileSystem 	= require('./FileSystem-debug');
+	exports.Util 		= require('./Util-debug');
+	exports.Importer 	= require('./Importer/index-debug');
+
+})
+
+
+//========================
+// Geometry.js
+//
+// Basic Geometry Asset
+// Save an geometry instance, which can be imported and exported as a json format asset
+//========================
+define("Core/Assets/Geometry-debug", [], function(require, exports, module){
+
+	// adapter to THREE.JSONLoader and BinaryLoader
+	var jsonLoader = new THREE.JSONLoader();
+	
+	var guid = 0;
+
+	function create( geo ){
+
+		var name = geo && geo.name
+
+		return {
+
+			type : 'geometry',
+
+			name : name || 'Geometry_' + guid++,
+
+			data : geo || null,
+
+			rawdata : '',
+			// import from json
+			import : function(json){
+				this.data = read(json);
+				this.rawdata = json;
+
+				if( json.name ){
+					this.name = json.name;
+				}
+
+				return this.data;
+			},
+			// export to json
+			export : function(){
+				return toJSON( this.data );
+			},
+			// 获取一个Mesh的Instance
+			getInstance : function( material ){
+				return getInstance( this.data, material );
+			},
+			getCopy : function(){
+				return getCopy( this.data );
+			}
+		}
+	}
+
+	function read(json){
+		var ret;
+		jsonLoader.createModel(json, function(geo){
+			ret = geo;
+		})
+		return ret;
+	}
+
+	function getInstance( geo, material ){
+
+		if( ! material){
+			
+			material = new THREE.MeshLambertMaterial( {
+				wireframe : true,
+				color : 0xffffff*Math.random()
+			} );
+			// 用来判断是否是系统自带材质
+			material.__system__ = true;
+		}
+
+		// https://github.com/mrdoob/three.js/issues/363
+		// https://github.com/mrdoob/three.js/wiki/Updates
+
+		// fucking cache
+		// https://github.com/mrdoob/three.js/issues/2073
+		// https://github.com/mrdoob/three.js/issues/363
+		if( material.map ){
+			geo.uvsNeedUpdate = true;
+		}
+		if( ! geo.__referencecount__ ){
+			geo.__referencecount__ = 0;
+		}
+
+		var mesh = new THREE.Mesh(geo, material);
+		mesh.name = geo.name+'_'+geo.__referencecount__;
+		geo.__referencecount__++;
+
+		return mesh;
+	}
+
+	function getCopy( geo ){
+
+		var cloneGeo = new THREE.Geometry();
+
+		_.extend(cloneGeo, {
+			vertices : geo.vertices,
+			faces : geo.faces,
+			faceVertexUvs : geo.faceVertexUvs,
+			boundingBox : geo.boundingBox
+		})
+
+		return cloneGeo;
+	}
+
+	//https://github.com/mrdoob/three.js/wiki/JSON-Model-format-3.1
+	function toJSON(geo){
+
+		var i, j,
+		json = {
+			name : geo.name,
+			metadata: { 
+				formatVersion: 3.1
+			},
+			scale: 1.000000,
+			materials: [],
+			vertices: [],
+			morphTargets: [],
+			morphColors: [],
+			normals: [],
+			colors: [],
+			uvs: [[]],
+			faces: []
+		};
+
+		for (i = 0; i < geo.vertices.length; i++) {
+			json.vertices.push(geo.vertices[i].x);
+			json.vertices.push(geo.vertices[i].y);
+			json.vertices.push(geo.vertices[i].z);
+		}
+
+		for(var i = 0; i < geo.materials.length; i++){
+	    	json.materials[i] = materialBaseUri+geo.materials[i].name;
+	    }
+
+		var hasFaceUv,
+			hasMaterial,
+			hasFaceVertexUv,
+			isQuad,
+			hasFaceNormal,
+			hasFaceVertexNormal,
+			hasFaceColor,
+			hasFaceVertexColor,
+
+			face, nVertices,
+			// todo, add multiple uUvLayers support
+			nUvLayers,
+
+			bitset;
+
+		if( geo.faceVertexUvs[0].length){
+			hasFaceVertexUv = 1;
+		}else{
+			hasFaceVertexUv = 0;
+		}
+		if( geo.faceUvs[0].length){
+			hasFaceUv = 1;
+		}else{
+			hasFaceUv = 0;
+		}
+
+		for (i = 0; i < geo.faces.length; i++) {
+
+			face = geo.faces[i];
+
+			if( !_.isUndefined(face.materialIndex) ){
+				hasMaterial = 1
+			}else{
+				hasMaterial = 0
+			}
+			if( face instanceof THREE.Face4 ){
+				nVertices = 4;
+				isQuad = 1;
+			}else{
+				nVertices = 3;
+				isQuad = 0;
+			}
+			if( face.normal){
+				hasFaceNormal = 1;
+			}else{
+				hasFaceNormal = 0;
+			}
+			if( face.vertexNormals.length){
+				hasFaceVertexNormal = 1;
+			}else{
+				hasFaceVertexNormal = 0;
+			}
+			// if( face.color){
+			// 	hasFaceColor = 1;
+			// }else{
+			// 	hasFaceColor = 0;
+			// }
+			hasFaceColor = 0;	//不知道怎么判断是否有faceColor
+
+			if( face.vertexColors.length){
+				hasFaceVertexColor = 1;
+			}else{
+				hasFaceVertexColor = 0;
+			}
+
+			bitset = isQuad 
+					| (hasMaterial<<1)
+					| (hasFaceUv<<2)
+					| (hasFaceVertexUv<<3)
+					| (hasFaceNormal<<4)
+					| (hasFaceVertexNormal<<5)
+					| (hasFaceColor<<6)
+					| (hasFaceVertexColor<<7);
+
+		   	json.faces.push( bitset );
+
+
+			json.faces.push(face.a);
+			json.faces.push(face.b);
+			json.faces.push(face.c);
+
+			if ( isQuad) {
+				json.faces.push(face.d);
+			}
+			if( hasMaterial){
+
+				json.faces.push( face.materialIndex );
+			}
+			if( hasFaceUv ){
+
+				json.uvs[0].push(geo.faceUvs[0][i].u);
+				json.uvs[0].push(geo.faceUvs[0][i].v);
+
+				json.faces.push( json.uvs[0].length/2-1);
+			}
+			if( hasFaceVertexUv ){
+
+				for( j = 0; j < nVertices; j++){
+					
+					json.uvs[0].push(geo.faceVertexUvs[0][i][j].u);
+					json.uvs[0].push(geo.faceVertexUvs[0][i][j].v);
+
+					json.faces.push( json.uvs[0].length/2-1);
+				}
+			}
+			if( hasFaceNormal){
+
+				json.normals.push(face.normal.x);
+				json.normals.push(face.normal.y);
+				json.normals.push(face.normal.z);
+
+				json.faces.push( json.normals.length/3 -1 )
+			}
+			if( hasFaceVertexNormal ){
+
+				for( j = 0; j < nVertices; j++){
+
+					json.normals.push( face.vertexNormals[j].x)
+					json.normals.push( face.vertexNormals[j].y)
+					json.normals.push( face.vertexNormals[j].z)
+
+					json.faces.push( json.normals.length/3-1 );
+				}
+			}
+			if( hasFaceColor ){
+
+				json.colors.push( face.color.getHex() );
+				json.faces.push( json.colors.length-1 );
+			}
+			if( hasFaceVertexColor ){
+				
+				for( j = 0; j < nVertices; j++){
+
+					json.colors.push( face.vertexColors[j].getHex() );
+					json.faces.push( json.colors.length-1 );
+				}
+			}
+		}
+
+		return json;
+	}
+
+	exports.create = create;
+
+	// static functions
+	exports.export = toJSON;
+
+	exports.getInstance = getInstance;
+
+	exports.getCopy = getCopy;
+})
+
+//========================
+// Material.js
+//
+// Basic Material Asset
+// Save an material instance, which can be imported and exported as a json format asset
+// file extension, material
+//========================
+define("Core/Assets/Material-debug", [], function(require, exports, module){
+
+	var guid = 0;
+
+	function create(mat){
+
+		var name = mat && mat.name;
+		
+		return {
+
+			type : 'material',
+
+			name : name || 'Material_' + guid++,
+
+			data : mat || null,
+
+			rawdata : '',
+			// textureScope is a function to query a texture
+			import : function(json, textureScope){
+				this.data = read(json, textureScope);
+				this.rawdata = json;
+
+				if( json.name ){
+					this.name = json.name;
+				}
+
+				return this.data;
+			},
+			export : function(){
+				return toJSON( this.data );
+			},
+			getInstance : function(){
+				// return material directly
+				return this.data;
+			},
+			getCopy : function(){
+				return getCopy( this.data );
+			}
+		}
+	}
+
+	function read(m, textureScope){
+
+		if( material ){
+
+			return material;
+		}
+
+		if( m.type == 'basic'){
+
+			material = new THREE.MeshBasicMaterial(  );
+
+		}
+		else if(m.type == 'lambert'){
+
+			material = new THREE.MeshLambertMaterial(  );
+
+			_.extend(material, {
+				ambient : new THREE.Color(m.ambient),
+				emissive : new THREE.Color(m.emissive)
+			})
+		}
+		else if(m.type == 'phong'){
+
+			material = new THREE.MeshPhongMaterial(  );
+
+			_.extend(material, {
+				amibent : new THREE.Color( m.ambient ),
+				emissive : new THREE.Color( m.emissive ),
+
+				specular : m.specular,
+				shininess : m.shininess,
+				meta : m.metal,
+				perPixel : m.perPixel
+			})
+		}
+		else if(m.type == 'shader'){
+
+			material = new THREE.ShaderMaterial( {
+				
+				vertexShader : m.vertexShader,
+
+				fragmentShader : m.fragmentShader
+			});
+
+			var uniforms = {};
+			_.each( m.uniforms, function(uniform, key){
+
+				var value;
+				switch( uniform.type){
+					case 'f':
+						value = uniform.value;
+						break;
+					case 'v2':
+						value = new THREE.Vector2(uniform.value.x, uniform.value.y);
+						break;
+					case 'v3' :
+						value = new THREE.Vector3(uniform.value.x, uniform.value.y, uniform.value.z);
+						break;
+					case 'v4':
+						value = new THREE.Vector4(uniform.value.x, uniform.value.y, uniform.value.z, uniform.value.w);
+						break;
+					case 't':
+						value = textureScope( uniform.value );
+						break;
+					case 'c':
+						value = new THREE.Color( uniform.value );
+						break
+					default:
+						value = 0;	//and so on.............
+				}
+
+				unfiorms[key] = {
+					type : uniform.type,
+					value : value
+				}
+			} )
+
+			material.uniforms = uniforms;
+		}
+
+		if( m.type != 'shader'){
+
+			_.extend(material, {
+				name : m.name,
+
+				map : textureScope(m.map),
+				lightMap : textureScope(m.lightMap),
+				specularMap : textureScope(m.specularMap),
+				envMap : textureScope(m.envMap),
+
+				color : new THREE.Color( m.color ),
+
+				opacity : m.opacity,
+				transparent : m.transparent,
+				reflectivity : m.reflectivity,
+				refractionRatio : m.refractionRatio,
+				shading : m.shading,
+				wireframe : m.wireframe
+			});
+
+		}
+
+		return material;
+	}
+
+	function toJSON( material ){
+
+		var json = {};
+		json.name = material.name;
+
+		if( material instanceof THREE.ShaderMaterial ){
+
+			json.uniforms = [];
+
+			_.each( material.uniforms, function(uniform, key){
+				var value;
+				switch( uniform.type ){
+					case 'f':
+						value = uniform.value;
+						break;
+					case 'v2':
+						value = [uniform.value.x, uniform.value.y];
+						break;
+					case 'v3' :
+						value = [uniform.value.x, uniform.value.y, uniform.value.z];
+						break;
+					case 'v4':
+						value = [uniform.value.x, uniform.value.y, uniform.value.z, uniform.value.w];
+						break;
+					case 't':
+						value = textureUriBase + uniform.value.name;
+						break;
+					case 'c':
+						value = uniform.value.getHex();
+						break
+					default:
+						value = 0;	//and so on.............
+				}
+
+				json.uniforms[key] = {
+					type : uniform.type,
+					value : value
+				}
+			} )
+
+			json['vertexShader'] = material.vertexShader;
+			json['fragmentShader'] = material.fragmentShader;
+			json['type'] = 'shader';
+		}
+		else{
+			if( material.map && ! material.map.__system__){
+
+				json['map'] = textureUriBase + material.map.name;
+			}
+			if( material.lightMap ){
+
+				json['lightMap'] = textureUriBase + material.lightMap.name;
+			}
+			if( material.specularMap ){
+
+				json['specularMap'] = textureUriBase + material.specularMap.name;
+			}
+			if( material.envMap ){
+
+				json['envMap'] = textureUriBase + material.envMap.name;
+			}
+
+			_.extend( json, {
+				'opacity' : material.opacity,
+				'transparent' : material.transparent,
+				'color' : material.color.getHex(),
+				'combine' :  material.combine,
+				'reflectivity' : material.reflectivity,
+				'refractionRatio' : material.refractionRatio,
+				'shading' : material.shading,
+				'wireframe' : material.wireframe
+			})
+
+			if( material instanceof THREE.MeshBasicMaterial ){
+				json['type'] = 'basic';
+			}
+			else if( material instanceof THREE.MeshLambertMaterial ){
+
+				_.extend(json, {
+					'type' : 'lambert',
+					'ambient' : material.ambient.getHex(),
+					'emissive' : material.emissive.getHex()
+				})
+			}
+			else if( material instanceof THREE.MeshPhongMaterial ){
+
+				_.extend(json, {
+
+					'type' : 'phong',
+					'ambient' : material.ambient.getHex(),
+					'emissive' : material.emissive.getHex(),
+
+					'specular' : material.specular,
+					'shininess' : material.shininess,
+					'metal' : material.metal,
+					'perPixel' : material.perPixel,
+
+				})
+				if( material.bumpMap ){
+					_.extend( json, {
+
+						'bumpMap' : textureUriBase + material.bumpMap.name,
+						'bumpScale' : material.bumpScale
+					})
+				}
+				if( material.normalMap ){
+
+					_.extend( json, {
+
+						'normalMap' : textureUriBase + material.normalMap.name,
+						'normalScale' : material.normalScale
+					})
+				}
+			}
+		}
+		return json;
+	}
+
+	function getCopy( mat ){
+
+		var clonedMaterial = mat.clone();
+
+		if( clonedMaterial instanceof THREE.ShaderMaterial ){
+
+			_.each(clonedMaterial.uniforms, function(item, key){
+
+				if( item.type == 't' ){
+
+					if(item.value){	
+
+						item.value = item.value.clone();
+						item.value.needsUpdate = true;
+					}
+				}
+			})
+		}
+		else {
+			if(clonedMaterial.map){
+
+				clonedMaterial.map = clonedMaterial.map.clone();
+				clonedMaterial.map.needsUpdate = true;
+			}
+			if( clonedMaterial.lightMap){
+
+				clonedMaterial.lightMap = clonedMaterial.lightMap.clone();
+				clonedMaterial.map.needsUpdate = true;
+			}
+			if( clonedMaterial.specularMap ){
+
+				clonedMaterial.specularMap = clonedMaterial.specularMap.clone();
+				clonedMaterial.map.needsUpdate = true;
+			}
+			if( clonedMaterial.envMap ){
+
+				clonedMaterial.envMap = clonedMaterial.envMap.clone();
+				clonedMaterial.map.needsUpdate = true;
+			}
+		}
+
+		return clonedMaterial;
+	}
+
+	exports.create = create;
+	// static functions
+	exports.export = toJSON;
+
+	exports.getCopy = getCopy;
+})
+
+//========================
+// Prefeb.js
+//
+// Node Prefeb Asset
+// Save a copy of node instance, it will be packed as a zip file when storing on the disk.
+// file extension, prefeb
+//========================
+define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug"], function(require, exports, module){
+
+	var Geometry = require('./Geometry-debug');
+	var Material = require('./Material-debug');
+	var Texture = require('./Texture-debug');
+	var TextureCube = require('./TextureCube-debug');
+	var Util = require('./Util-debug');
+
+	var guid = 0;
+
+	function create(node){
+
+		var name = node && node.name;
+
+		return {
+
+			type : 'prefab',
+
+			name : name || 'Mesh_' + guid++,
+
+			data : node || null,
+
+			rawdata : '',
+
+			import : function(json, materialScope, geometryScope){
+				this.data = read( json, materialScope, geometryScope );
+				this.rawdata = json;
+				
+				if( json.name ){
+					this.name = json.name;
+				}
+
+				return this.data;
+			},
+
+			export : function(){
+				return toJSON( this.data );
+			},
+
+			getInstance : function(){
+				return this.data;
+			},
+
+			getCopy : function(){
+				return getCopy( this.data );
+			}
+		}
+	}
+
+	var nodeTypeMap = {
+		'mesh' : THREE.Mesh,
+		// lights
+		'directionalLight' : THREE.DirectionalLight,
+		'pointLight' : THREE.PointLight,
+		'ambientLight' : THREE.AmbientLight,
+		'spotLight' : THREE.SpotLight,
+		// cameras
+		'perspectiveCamera' : THREE.PerspectiveCamera,
+		'orthographicCamera' : THREE.OrthographicCamera,
+		//scene
+		'scene' : THREE.Scene,
+		// base
+		'node' : THREE.Object3D //node 最后被遍历到
+	}
+
+	var nodePropsMap = {
+		'mesh' : [ 'geometry', 'material' ],
+		'directionalLight' : [ 'color', 'intensity' ],
+		'pointLight' : [ 'color', 'intensity', 'distance' ],
+		'ambientLight' : [ 'color' ],
+		'spotLight' : [ 'intensity', 'distance', 'angle', 'exponent' ],
+		'perspectiveCamera' : [ 'fov', 'aspect', 'near', 'far' ],
+		'orthographicCamera' : [ 'left', 'right', 'top', 'bottom', 'near', 'far'],
+		'scene' : [],
+		'node' : [ 'name', 'position', 'rotation', 'scale' ]
+	}
+	
+	function read(json, materialScope, geometryScope ){
+		
+		var nodes = {};
+
+		_.each( json, function(n){
+
+			var node = new nodeTypeMap[ n.type ];
+
+			node.name = n.name;
+			node.parent = n.parent;
+			
+			var props = _.union( nodePropsMap[ n.type ], nodePropsMap['node'] );
+
+			_.each( props, function(propName){
+
+				var prop = n[ propName ];
+
+				if( ! prop){
+					return;
+				}
+				if( _.isNumber(prop) ){
+
+					node[propName] = prop
+				}
+				else if( propName == 'material' ){
+					node['material'] = materialScope( prop );
+				}
+				else if( propName == 'geometry' ){
+					node['geometry'] = geometryScope( prop );
+				}
+				else if( prop.length == 2){
+
+					node[propName] = new THREE.Vector2( prop[0], prop[1]);
+				}
+				else if( prop.length == 3){
+
+					node[propName] = new THREE.Vector3( prop[0], prop[1], prop[2]);
+				}
+				else if( prop.length == 4){
+
+					node[propName] = new THREE>Vector4( prop[0], prop[1], prop[2], prop[3]);
+				}
+			} );
+
+			if( node instanceof THREE.Light ){
+
+				node['color'] = new THREE.Color( n['color'] );
+			}
+
+			nodes[ n.name ] = node;
+		})
+
+		//reconstruct the tree
+		_.each( nodes, function(node, name){
+
+			if( node.parent){
+				var parent = nodes[ node.parent ];
+				node.parent = parent;
+				parent.add( node );
+			}
+		})
+
+		return nodes;
+	}
+
+	function toJSON( _node ){
+
+		var items = {};
+		// flattening the scene
+		_node.traverse( function( node ){
+
+			if(node.__helper__){
+				return;
+			}
+			if( !node.name){
+				return;
+			}
+
+			var  item = {};
+
+			item[ 'name' ] = node.name;
+
+			if( node.parent ){
+
+				item['parent'] = node.parent.name;
+			}
+
+			items[node.name] = item;
+
+			// export properties
+			_.each( nodeTypeMap, function(Constructor, type){
+
+				if( node instanceof Constructor){
+					if( ! item['type']){
+
+						item['type'] = type;
+					}
+
+					var props = nodePropsMap[type];
+
+					_.each( props, function(propName){
+
+						var prop = node[propName];
+
+						if( prop instanceof THREE.Vector2){
+
+							item[propName] = [prop.x, prop.y];
+						}
+						else if( prop instanceof THREE.Vector3){
+
+							item[propName] = [prop.x, prop.y, prop.z];
+						}
+						else if( prop instanceof THREE.Vector4){
+
+							item[propName] = [prop.x, prop.y, prop.z, prop.w];
+						}
+						else if( prop instanceof THREE.Color ){
+
+							item[propName] = prop.getHex();
+						}
+						else if( _.isNumber(prop) || _.isString(prop) ){
+
+							item[propName] = prop;
+						}
+						else if( prop instanceof THREE.Material ){
+
+							item[propName] = prop.path;
+						}
+						else if( prop instanceof THREE.Geometry){
+
+							item[propName] = prop.path;
+						}
+					})
+				}
+			} )
+
+		} );
+
+		return items;
+	}
+
+	function getInstance( root ){
+
+		var rootCopied = new THREE.SceneUtils.cloneObject(root);
+
+		rootCopied.traverse( function(nodeCopied){
+			var name = nodeCopied.name,
+				node = root.getChildByName(name, true);
+			if(nodeCopied == rootCopied){
+				node = root;
+			}
+			if( ! node.__referencecount__){
+				node.__referencecount__ = 0;
+			}
+			nodeCopied.name = name + '_' + node.__referencecount__++
+		})
+
+		return rootCopied;
+	}
+
+	function getCopy( root ){
+
+		var nodes = {};
+
+		var rootCopied = new THREE.SceneUtils.cloneObject(root);
+
+		rootCopied.traverse( function(nodeCopied){
+			
+			if( ! nodeCopied.geometry){
+				return;
+			}
+
+			nodeCopied.geometry = shallowCloneGeo(nodeCopied.geometry);
+			//manually compute bounding sphere
+			nodeCopied.geometry.computeBoundingSphere();
+			nodeCopied.material = shallowCloneMaterial( nodeCopied.material );
+
+		} );
+
+		return rootCopied;
+	}
+
+	exports.create = create;
+
+	exports.export = toJSON;
+	exports.getInstance = getInstance;
+	exports.getCopy = getCopy;
+})
+
+//========================
+// Texture.js
+//
+// Texture Asset
+// Save an texture instance, which can be imported and exported as a json format asset and images
+// file extension texture
+//========================
+define("Core/Assets/Texture-debug", [], function(require, exports, module){
+
+	var imageCache = {};
+
+	var guid = 0;
+
+	function create(texture){
+
+		var name = texture && texture.name;
+
+		return {
+
+			type : 'texture',
+
+			name : name || 'Texture_' + guid++,
+
+			data : texture || null,
+
+			rawdata : '',
+
+			import : function(json){
+				this.data = read(json);
+				this.rawdata = json;
+
+				if( json.name ){
+					this.name = json.name;
+				}
+
+				return this.data;
+			},
+
+			export : function(){
+				return toJSON( this.data );
+			},
+			getInstance : function(){
+				return this.data;
+			},
+			getCopy : function(){
+				return getCopy( this.data );
+			}
+		}
+	}
+
+	function read(json){
+		
+		var texture = new THREE.Texture({
+			wrapS : t.wrapS,
+			wrapT : t.wrapT,
+			magFilter : t.magFilter,
+			minFilter : t.minFilter,
+			anisotropy : t.anisotropy,
+			format : t.format,
+			type : t.type,
+			offset : new THREE.Vector2( t.offset[0], t.offset[1] ),
+			repeat : new THREE.Vector2( t.repeat[1], t.repeat[1] )
+		});
+
+		var imgSrc = json.image
+		// don't cache base 64 format
+		if( imgSrc.indexOf('data:image/')==0 ){
+			var img = new Image();
+			img.onload = function(){
+				texture.needsUpdate = true;
+			}
+			img.src = imageSrc;
+			texture.image = img;
+		}
+		else if( imgSrc ){
+			if( imageCache[ imgSrc ] ){
+				texture.image = imageCache[ imgSrc];
+			}else{
+				var img = new Image();
+				img.onload = function(){
+					texture.needsUpdate = true;
+				}
+				img.src = imageSrc;
+				texture.image = img;
+				imageCache[imgSrc] = img;
+			}
+
+		}
+
+		return texture;
+	}
+
+	function toJSON( texture ){
+		
+		var json = {};
+
+		// todo cube texture?
+		_.extend(json, {
+			'image' : texture.image.src,	//data url todo needs save texture depedently
+			'wrapS' : texture.wrapS,
+			'wrapT' : texture.wrapT,
+			'magFilter' : texture.magFilter,
+			'minFilter' : texture.minFilter,
+			'anisotropy' : texture.anisotropy,
+			'format' : texture.format,
+			'type' : texture.type,
+			'offset' : [texture.offset.x, texture.offset.y],
+			'repeat' : [texture.repeat.x, texture.repeat.y]
+		});
+
+		return json;
+	}
+
+	function getInstance(){
+		this.data.needsUpdate = true;
+		return this.data;
+	}
+
+	function getCopy( texture ){
+		return texture.clone();
+	}
+
+	exports.create = create;
+	// static functions
+	exports.export = toJSON;
+
+	exports.getCopy = getCopy;
+})
+
+//========================
+// TextureCube.js
+//
+// TextureCube Asset
+// Save an geometry instance
+// Unlike texture asset, texture cube will pack all sides images in a zip file
+// file extension texturecube
+//========================
+define("Core/Assets/TextureCube-debug", [], function(require, exports, module){
+
+	var imageCache = {};
+
+	var guid = 0;
+
+	function create(texture){
+
+		var name = texture && texture.name;
+
+		return {
+
+			type : 'texturecube',
+
+			name : name || 'TextureCube_' + guid++,
+
+			data : texture || null,
+
+			rawdata : '',
+
+			import : function(json){
+				this.data = read(json);
+				this.rawdata = json;
+
+				if( json.name ){
+					this.name = json.name;
+				}
+
+				return this.data;
+			},
+
+			export : function(){
+				return toJSON( this.data );
+			},
+			getInstance : function(){
+				return this.data;
+			},
+			getCopy : function(){
+				return getCopy( this.data );
+			}
+		}
+	}
+
+	function read(json){
+
+		var texture = new THREE.Texture({
+			wrapS : t.wrapS,
+			wrapT : t.wrapT,
+			magFilter : t.magFilter,
+			minFilter : t.minFilter,
+			anisotropy : t.anisotropy,
+			format : t.format,
+			type : t.type,
+			offset : new THREE.Vector2( t.offset[0], t.offset[1] ),
+			repeat : new THREE.Vector2( t.repeat[1], t.repeat[1] )
+		});
+
+		var imgLoadCount = 0;
+		_.each( json.image.length, function(imgSrc, index){
+			// don't cache base 64 format
+			if( imgSrc.indexOf('data:image/')==0 ){
+				var img = new Image();
+				img.onload = function(){
+					imgLoadCount--;
+					if( imgLoadCount == 0){
+						texture.needsUpdate = true;
+					}
+				}
+				img.src = imageSrc;
+				imgLoadCount++;
+				texture.image[index] = img;
+			}
+			else if( imgSrc ){
+				if( imageCache[ imgSrc ] ){
+					texture.image[index] = imageCache[ imgSrc];
+				}else{
+					var img = new Image();
+					img.onload = function(){
+						imgLoadCount--;
+						if( imgLoadCount == 0 ){
+							texture.needsUpdate = true;
+						}
+					}
+					img.src = imageSrc;
+					imgLoadCount++;
+					texture.image[index] = img;
+					imageCache[imgSrc] = img;
+				}
+			}
+
+		} )
+
+		return texture;
+	}
+
+	function toJSON(texture){
+
+		var json = {};
+
+		// todo cube texture?
+		_.extend(json, {
+			'image' : [],	//data url todo needs save texture depedently
+			'wrapS' : texture.wrapS,
+			'wrapT' : texture.wrapT,
+			'magFilter' : texture.magFilter,
+			'minFilter' : texture.minFilter,
+			'anisotropy' : texture.anisotropy,
+			'format' : texture.format,
+			'type' : texture.type,
+			'offset' : [texture.offset.x, texture.offset.y],
+			'repeat' : [texture.repeat.x, texture.repeat.y]
+		});
+
+		_.each(texture.image.length, function(img){
+			json.image.push(img.src);
+		} )
+
+		return json;
+	}
+
+	function getInstance(){
+		this.data.needsUpdate = true;
+		return this.data;
+	}
+
+	function getCopy(){
+		return texture.clone();
+	}
+
+	exports.create = create;
+	// static functions
+	exports.export = toJSON;
+
+	exports.getCopy = getCopy;
+})
+
+//=============
+// Util.js
+// Assets Util
+//=============
+define("Core/Assets/Util-debug", [], function(require, exports, module){
+	
+	//
+	//分割有多个material的geometry，使得每个mesh都只有一个单独的material
+	//为了清晰，不适用three.js的face material
+	//todo morphTarget, morphColor, morphNormals, skinWeights?
+	//
+	exports.splitGeometry = function(geo){
+
+		var faces = geo.faces,
+			uvs = geo.faceVertexUvs[0],	//只支持一个uv？
+			vertices = geo.vertices,
+
+			face, materialIndex,
+			v1, v2, v3, v4,
+
+			hashMap = [], item;
+
+		for(var i = 0; i < faces.length; i++){
+			
+			face = faces[i];
+
+			materialIndex = face.materialIndex;
+			if( _.isUndefined( materialIndex ) ){
+				materialIndex = 0;
+			}
+
+			if( ! hashMap[materialIndex] ){
+				hashMap[materialIndex] = {
+					'faces' : [],
+					'vertices' : [],
+					'uvs' : []
+				}
+			}
+			item = hashMap[materialIndex];
+			item.faces.push(face);
+			if( uvs[i] ){
+				item.uvs.push(uvs[i]);
+			} 
+
+			v1 = vertices[ face.a ];
+			v2 = vertices[ face.b ];
+			v3 = vertices[ face.c ];
+			
+			v1 = processVertex(v1, item, materialIndex);
+			face.a = v1.__newindex__;
+			v2 = processVertex(v2, item, materialIndex);
+			face.b = v2.__newindex__;
+			v3 = processVertex(v3, item, materialIndex);
+			face.c = v3.__newindex__;
+
+			if( face instanceof THREE.Face4){
+				v4 = vertices[ face.d ];
+				v4 = processVertex(v4, item, materialIndex);
+				face.d = v4.__newindex__;
+			}
+				
+		}
+
+		function processVertex(v, item, materialIndex){
+			if( typeof(v.__newindex__) !== 'undefined' ){
+				item.vertices.push(v);
+				// save the index of the new vertex array
+				v.__newindex__ = item.vertices.length - 1;
+			}
+			if( typeof(v.__materialindex__) !== 'undefined' ){
+				v.__materialindex__ = materialIndex;
+			}
+			else if( v.__materialindex__ != materialIndex){
+				v = v.clone();
+				item.vertices.push(v);
+				v.__newindex__ = item.vertices.length - 1;
+				v.__materialindex__ = materialIndex;
+			}
+			return v;
+		}
+
+		var subGeo, subGeoList = [];
+
+		for(var i = 0; i < hashMap.length; i++){
+			subGeo = new THREE.Geometry();
+			subGeo.vertices = hashMap[i].vertices;
+			subGeo.faces = hashMap[i].faces;
+			subGeo.faceVertexUvs = [ hashMap[i].uvs ];
+
+			subGeo.name = geo.name+'_sub_'+i;
+
+			subGeoList.push(subGeo);
+		}
+		// clear
+		for( var i = 0; i < hashMap.length; i++){
+			for(var v=0; v < hashMap[i].vertices.length; v++){
+				delete hashMap[i].vertices[v].__newindex__;
+				delete hashMap[i].vertices[v].__materialindex__;
+			}
+		}
+		// index 0 is the faces has no materialindex
+		return subGeoList;
+	}
+
+	//
+	// 计算整个节点的boundingbox
+	//
+	exports.computeBoundingBox = function(_node){
+
+		function computeBoundingBox(node){
+
+			var bbs = [];
+			if( node.geometry ){
+
+				if( ! node.geometry.boundingBox){
+
+					node.geometry.computeBoundingBox();
+				}
+				bbs.push(node.geometry.boundingBox);
+			}
+
+			_.each(node.children, function(item, key){
+
+				var bb = computeBoundingBox(item);
+				bbs.push(bb);
+			})
+			var min = new THREE.Vector3(100000, 100000, 100000);
+			var max = new THREE.Vector3(-100000, -100000, -100000);
+			
+			_.each(bbs, function(item, key){
+
+				if(item.max.x > max.x){
+					max.x = item.max.x;
+				}
+				if(item.max.y > max.y){
+					max.y = item.max.y;
+				}
+				if(item.max.z > max.z){
+					max.z = item.max.z;
+				}
+				if(item.min.x < min.x){
+					min.x = item.min.x;
+				}
+				if(item.min.y < min.y){
+					min.y = item.min.y;
+				}
+				if(item.min.z < min.z){
+					min.z = item.min.z;
+				}
+			})
+
+			return {min : min, max : max};
+		}
+
+		return computeBoundingBox(_node);
+	}
+
+	exports.parseFileName = function(fileName){
+		var fileSplited = fileName.split('.'),
+			ext = fileSplited.pop(),
+			base = fileSplited.join('.');
+
+		return {
+			ext : ext,
+			base : base
+		}
+	}
+
+	// some bridge function from treeview to scene
+
+	// get path of scene node compatible to three view
+	exports.getSceneNodePath = function( node ){
+		var path = node.name;
+		while(node.parent){
+			node = node.parent;
+			path = node.name + '/' + path;
+		}
+		return path;
+	}
+
+	exports.findSceneNode = function( path, parent ){
+
+		if( path instanceof THREE.Object3D ){
+			return path;
+		}else if( ! _.isString(path) ){
+			return;
+		}
+
+		var root = parent;
+		if( path.charAt(0) == '/'){
+			path = path.substring(1);
+			root = exports.getRoot(root);
+			// remove scene
+			path = path.substring(root.name.length);
+		}
+
+		return _.reduce(_.compact(path.split('/')), function(node, name){
+			if( ! node){
+				return;
+			}
+			return node.getChildByName(name); q
+		}, root);
+	}
+
+	exports.getRoot = function( node ){
+		var root = node;
+		while(node.parent){
+			root = node.parent;
+		}
+		return root;
+	}
+
+})
+
+//=====================
+// FileSystem.js
+// simulate a file system simply
+// Todo : add FileSystem api support and save data on hdd
+//=====================
+define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
+
+	var File = function(name, asset){
+
+		this.type = 'file';
+		this.name = name || '';
+		
+		this.data = null;
+		if(asset){
+			this.attach( asset, true );
+		}
+
+		this.parent = null;
+	}
+
+	_.extend(File.prototype, Backbone.Events);
+
+	File.prototype.getRoot = function(){
+		var root = this;
+		while(root.parent){
+			root = root.parent;
+		}
+		return root;
+	}
+	File.prototype.setName = function(name, silent){
+		this.name = name;
+	
+		if( ! silent){
+			this.getRoot().trigger('updated:name', this, name);
+		}
+	}
+	File.prototype.attach = function(asset, silent){
+		this.data = asset;
+
+		if( ! silent){
+			this.getRoot().trigger('attached:asset', this, asset);
+		}
+	}
+	File.prototype.detach = function(silent){
+		this.data = null;
+
+		if( ! silent){
+			this.getRoot().trigger('detached:asset', this);
+		}
+	}
+	File.prototype.getPath = function(){
+		if( ! this.parent ){
+			return this.name;
+		}
+		return this.parent.getPath() + this.name;
+	}
+
+	var Folder = function(name){
+
+		this.name = name || '';
+
+		this.type = 'folder'
+
+		this.children = [];
+	}
+
+	_.extend(Folder.prototype, Backbone.Events);
+
+	Folder.prototype.setName = function(name, silent){
+
+		this.name = name;
+
+		if( ! silent){
+			this.getRoot().trigger('updated:name', this, name);
+		}
+	}
+	Folder.prototype.getRoot = function(){
+		var root = this;
+		while(root.parent){
+			root = root.parent;
+		}
+		return root;
+	}
+	Folder.prototype.add = function(node, silent){
+
+		var isMove = false;
+
+		if(node.parent){
+			isMove = true;
+
+			if(node.parent == this){
+				return;
+			}
+			node.parent.remove(node, true);
+		}
+		this.children.push( node );
+
+		if(isMove){
+			var parentPrev = node.parent;
+		}
+		node.parent = this;
+
+		if( ! silent){
+			if( isMove ){
+				this.getRoot().trigger('moved:node', this, parentPrev, node);
+			}else{
+				this.getRoot().trigger('added:node', this, node);
+			}
+		}
+	}
+	Folder.prototype.remove = function(node, silent){
+		if( _.isString(node) ){
+			node = this.find(node);
+		}
+		// call before the node is really removed
+		// because we still need to get node path 
+		if( ! silent){
+
+			this.getRoot().trigger('removed:node', this, node);
+		}
+
+		node.parent = null;
+		_.without( this.children, node);
+
+	}
+	// traverse the folder
+	Folder.prototype.traverse = function(callback){
+		callback && callback( this );
+		_.each( this.children, function(child){
+			child.traverse( callback );
+		} )
+	}
+	// get the folder's absolute path
+	Folder.prototype.getPath = function(){
+		if( ! this.parent ){
+			return this.name + '/';
+		}
+		return this.parent.getPath() + this.name + '/';
+	}
+	// find a folder or file 
+	Folder.prototype.find = function(path){
+		var root = this;
+		// abosolute path
+		if( path.charAt(0) == '/'){
+			path = path.substring(1);
+			root = exports.root;
+		}
+		return _.reduce( _.compact(path.split('/')), function(node, name){
+			if( ! node){
+				return;
+			}
+			if( name == '..'){
+				return node.parent;
+			}
+			else if( name =='.'){
+				return node;
+			}
+			else{
+				return _.find(node.children, function(item){
+					return item.name==name
+				});
+			}
+		}, root);
+	}
+	Folder.prototype.createFolder = function(path, silent){
+		path = _.compact(path.split('/'));
+		var ret = _.reduce(path, function(node, name){
+			var folder = node.find(name);
+			if( !folder ){
+				folder = new Folder(name);
+				node.add( folder, silent );
+			}
+			return folder;
+		}, this);
+
+		if( ! silent){
+
+			this.getRoot().trigger('created:folder', this, ret);
+		}
+		return ret;
+	}
+	Folder.prototype.createFile = function(path, asset, silent){
+		dir = _.compact(path.split('/'));
+		var fileName = dir.pop();
+		var folder = this.createFolder(dir.join('/'), silent);
+		var file = folder.find(fileName);
+		if( ! file){
+			file = new File( fileName, asset );
+
+			folder.add( file, silent );
+
+			if( ! silent){
+				this.getRoot().trigger('created:file', this, file);
+			}
+		}
+
+		return file;
+	}
+
+	var Root = function(){
+		Folder.call(this);
+	};
+	Root.prototype = new Folder;
+	Root.prototype.getPath = function(){
+		return '/';
+	}
+
+	exports.root = new Root();
+	exports.Folder = Folder;
+	exports.File = File;
+})
+
+//==========================================
+//index.js
+//加载当前目录下的所有组件
+//==========================================
+define("Core/Assets/Importer/index-debug", ["./Binary-debug", "../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug", "./Collada-debug", "./JSON-debug", "./Zip-debug"], function(require, exports, module){
+
+	exports.Binary = require('./Binary-debug');
+	exports.Collada 	= require('./Collada-debug');
+	exports.JSON 	= require('./JSON-debug');
+	exports.Zip 	= require('./Zip-debug');
+
+})
+
+//=======================
+// Binary.js
+// import from binary file
+//=======================
+
+define("Core/Assets/Importer/Binary-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+
+	var binaryLoader = new THREE.BinaryLoader();
+	var GeometryAsset = require('../Geometry-debug'),
+		PrefabAsset = require('../Prefab-debug'),
+		AssetUtil = require('../Util-debug');
+
+	exports.import = function(name, bin, folder){
+		var geo;
+		binaryLoader.createBinModel(bin, function(_geo){
+			geo = _geo;
+		}, '', []);
+
+		geo.name = name;
+		var node = createSplittedMeshes( geo );
+		var prefab = PrefabAsset.create( node );
+		var file = folder.createFile(prefab.name, prefab);
+	}
+
+	exports.importFromFile = function(file, folder, callback){
+
+		var reader = new FileReader();
+		reader.onload = function( evt ){
+
+			if( evt.target.readyState == FileReader.DONE){
+				var name = AssetUtil.parseFileName( file.name ).base;
+				var res =  exports.import( name, evt.target.result, folder );
+				callback && callback(res );
+			}
+		}
+		reader.readAsArrayBuffer( file );
+	}
+
+	exports.importFromUrl = function(url, callback){
+
+	}
+
+	function createSplittedMeshes(geo){
+
+		geoList = AssetUtil.splitGeometry( geo );
+
+		var node = new THREE.Object3D();
+		node.name = geo.name;
+
+		_.each(geoList, function(subGeo, index){
+			
+			var mesh = GeometryAsset.getInstance( subGeo );
+			node.add(mesh);
+
+		})
+
+		return node;
+	}
+})
+
+//=========================
+// Collada.js
+// import from collada file
+//=========================
+
+define("Core/Assets/Importer/Collada-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+
+	var colladaLoader = new THREE.ColladaLoader();
+	var GeometryAsset = require('../Geometry-debug'),
+		PrefabAsset = require('../Prefab-debug'),
+		MaterialAsset = require('../Material-debug'),
+		AssetUtil = require('../Util-debug');
+
+	exports.import = function(name, data, folder){
+
+		colladaLoader.parse(data, function(result){
+
+			var node = new THREE.Object3D();
+			_.each(result.scene.children, function(child){
+				node.add(child);
+			})
+			node.name = name;
+			var prefab = PrefabAsset.create( node );
+			var file = folder.createFile( prefab.name, prefab );
+		})
+	}
+
+	exports.importFromFile = function(file, folder, callback){
+		var reader = new FileReader();
+		reader.onload = function( evt ){
+
+			if(evt.target.readyState == FileReader.DONE){
+				
+				var name = AssetUtil.parseFileName(file.name).base;
+
+				var domParser = new DOMParser();
+				var doc = domParser.parseFromString(evt.target.result, 'application/xml');
+
+				var res = exports.import( name, doc, folder);
+
+				callback && callback(res);
+			}
+		}
+
+		reader.readAsText( file );
+	}
+
+	exports.importFromUrl = function(url, folder, callback){
+
+	}
+})
+
+//=========================
+// Json.js
+// import from json file
+//=========================
+
+define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+
+	var jsonLoader = new THREE.JSONLoader();
+	var GeometryAsset = require('../Geometry-debug'),
+		PrefabAsset = require('../Prefab-debug'),
+		MaterialAsset = require('../Material-debug'),
+		AssetUtil = require('../Util-debug');
+
+	exports.import = function(name, json, folder){
+
+		// create material assets
+		var materialList = [];
+		var matFolder = folder.createFolder('materials');
+		_.each(json.materials, function(mat){
+			var material = createMaterial(mat, function(name){
+				
+				var asset = folder.find( name )
+				if( ! asset ){
+					asset = folder.find( 'textures/'+name);
+				}
+				return asset;
+			})
+			materialList.push( material );
+			//create asset;
+			var matAsset = MaterialAsset.create( material );
+			var file = matFolder.createFile(matAsset.name, matAsset);
+
+		})
+		if( ! json.buffers ){
+			jsonLoader.createModel(json, function(geo){
+
+				geo.name = name;
+				var node = createSplittedMeshes(geo, materialList);
+				var prefab = PrefabAsset.create( node );
+				var file = folder.createFile(prefab.name, prefab);
+
+			})
+		}
+
+	}
+
+	exports.importFromFile = function(file, folder, callback){
+
+		var reader = new FileReader();
+		reader.onload = function( evt ){
+
+			if( evt.target.readyState == FileReader.DONE){
+				
+				var name = AssetUtil.parseFileName( file.name ).base;
+				
+				var res =  exports.import( name, JSON.parse(evt.target.result), folder );
+				callback && callback(res );
+			}
+		}
+		reader.readAsText( file );
+	}
+
+	exports.importFromUrl = function(url, folder, callback){
+		
+	}
+
+	function createSplittedMeshes(geo, materialList){
+
+		geoList = AssetUtil.splitGeometry( geo );
+
+		var node = new THREE.Object3D();
+		node.name = geo.name;
+
+		_.each(geoList, function(subGeo, index){
+			
+			var mesh = GeometryAsset.getInstance(subGeo, materialList[index]);
+			node.add(mesh);
+
+		})
+
+		return node;
+	}
+
+	function createMaterial(m, textureScope){
+
+		if( material ){
+			return material;
+		}
+
+		function rgb2hex( rgb ) {
+			return ( rgb[ 0 ] * 255 << 16 ) + ( rgb[ 1 ] * 255 << 8 ) + rgb[ 2 ] * 255;
+		}
+
+		var mtype = "MeshPhongMaterial";
+		var mpars = { color: 0xeeeeee, opacity: 1.0, map: null, lightMap: null, normalMap: null, bumpMap: null, wireframe: false };
+
+		// parameters from model file
+
+		if ( m.shading ) {
+			var shading = m.shading.toLowerCase();
+			if ( shading === "phong" ) mtype = "MeshPhongMaterial";
+			else if ( shading === "basic" ) mtype = "MeshBasicMaterial";
+		}
+
+		if ( m.blending !== undefined && THREE[ m.blending ] !== undefined ) {
+			mpars.blending = THREE[ m.blending ];
+		}
+
+		if ( m.transparent !== undefined || m.opacity < 1.0 ) {
+			mpars.transparent = m.transparent;
+		}
+
+		if ( m.depthTest !== undefined ) {
+			mpars.depthTest = m.depthTest;
+		}
+
+		if ( m.depthWrite !== undefined ) {
+			mpars.depthWrite = m.depthWrite;
+		}
+
+		if ( m.visible !== undefined ) {
+			mpars.visible = m.visible;
+		}
+
+		if ( m.flipSided !== undefined ) {
+			mpars.side = THREE.BackSide;
+		}
+
+		if ( m.doubleSided !== undefined ) {
+			mpars.side = THREE.DoubleSide;
+		}
+
+		if ( m.wireframe !== undefined ) {
+			mpars.wireframe = m.wireframe;
+		}
+
+		if ( m.vertexColors !== undefined ) {
+			if ( m.vertexColors === "face" ) {
+				mpars.vertexColors = THREE.FaceColors;
+			} else if ( m.vertexColors ) {
+				mpars.vertexColors = THREE.VertexColors;
+			}
+		}
+
+		// colors
+		if ( m.colorDiffuse ) {
+			mpars.color = rgb2hex( m.colorDiffuse );
+		} else if ( m.DbgColor ) {
+			mpars.color = m.DbgColor;
+		}
+
+		if ( m.colorSpecular ) {
+			mpars.specular = rgb2hex( m.colorSpecular );
+		}
+
+		if ( m.colorAmbient ) {
+			mpars.ambient = rgb2hex( m.colorAmbient );
+		}
+
+		// modifiers
+
+		if ( m.transparency ) {
+			mpars.opacity = m.transparency;
+		}
+
+		if ( m.specularCoef ) {
+			mpars.shininess = m.specularCoef;
+		}
+
+		// textures
+		if ( m.mapDiffuse ) {
+			mpars['map'] = textureScope(m.mapDiffuse);
+		}
+
+		if ( m.mapLight ) {
+			mpars['lightMap'] = textureScope(m.mapLight);
+		}
+
+		if ( m.mapBump ) {
+			mpars['bumpMap'] = textureScope( m.mapBump );
+		}
+
+		if ( m.mapNormal ) {
+			mpars['normalMap'] = textureScope(m.mapNormal);
+		}
+
+		if ( m.mapSpecular ) {
+			mpars['specularMap'] = textureScope(m.mapSpecular);
+		}
+
+		//
+
+		if ( m.mapBumpScale ) {
+			mpars.bumpScale = m.mapBumpScale;
+		}
+
+		var material = new THREE[ mtype ]( mpars );
+		material.name = m.DbgName;
+
+		return material;
+	}
+})
+
+
+define("Core/Assets/Importer/Zip-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+
+	var jsonLoader = new THREE.JSONLoader();
+	var GeometryAsset = require('../Geometry-debug'),
+		PrefabAsset = require('../Prefab-debug'),
+		MaterialAsset = require('../Material-debug'),
+		AssetUtil = require('../Util-debug');
+
+})
+
+//==========================================
+//index.js
+//加载当前目录下的所有组件
+//==========================================
+define("Core/UIBase/index-debug", ["./Button-debug", "./Checkbox-debug", "./Float-debug", "./Input-debug", "./Label-debug", "./Color-debug", "./Layer-debug", "./Link-debug", "./Node-debug", "./Panel-debug", "./Select-debug", "./Texture-debug", "./Tree-debug", "./Vector-debug", "./Video-debug", "./Tab-debug", "./Mixin/index-debug", "./Mixin/Collapsable-debug", "./Mixin/Scrollable-debug", "./Mixin/InputPin-debug", "./Mixin/Pin-debug", "./Mixin/OutputPin-debug"], function(require, exports, module){
+
+	exports.Button 		= require('./Button-debug'); 
+	exports.Checkbox 	= require('./Checkbox-debug');
+	exports.Float 		= require('./Float-debug');
+	exports.Input 		= require('./Input-debug');
+	exports.Label 		= require('./Label-debug');
+	exports.Color 		= require('./Color-debug');
+	exports.Layer 		= require('./Layer-debug'); 
+	exports.Link 		= require('./Link-debug'); 
+	exports.Node 		= require('./Node-debug');
+	exports.Panel 		= require('./Panel-debug');
+	exports.Select 		= require('./Select-debug');
+	exports.Texture 	= require('./Texture-debug');
+	exports.Tree 		= require('./Tree-debug');
+	exports.Vector 		= require('./Vector-debug');
+	exports.Video 		= require('./Video-debug');
+	exports.Tab 		= require('./Tab-debug');
+	exports.Mixin 		= require('./Mixin/index-debug');
+})
+
+
+//======================================
+// Button.js
+// 按钮组件
+//======================================
+
+define("Core/UIBase/Button-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			label : ''
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		tagName : 'div',
+
+		className : 'lblend-button',
+
+		template : '<button className="lblend-common-button" data-html="model.label"></button>',
+
+		model : null,
+
+		initialize : function(){
+			if( ! this.model){
+				this.model = new Model;
+			}
+			this.render();
+		},
+
+		events : {
+			'click button' : 'onclick'
+		},
+
+		render : function(){
+			var self = this;
+
+			self.$el.html(this.template);
+
+			rivets.bind( this.$el, { model : this.model } );
+		}, 
+
+		onclick : function(){
+			this.trigger('click');
+		}
+	})
+
+	exports.View = View;
+
+	exports.Model = Model;
+
+	Model.prototype.__viewconstructor__ = View;
+})
+
+//=================
+// Checkbox.js
+// Boolean value
+//=================
+define("Core/UIBase/Checkbox-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			value : false	//boolean
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'CHECKBOX',
+
+		tagName : 'div',
+
+		className : 'lblend-checkbox',
+
+		template : '<input type="checkbox" data-checked="model.value" data-name="model.name" /><label class="lblend-checkbox-label" data-html="model.name"></label>',
+
+		model : null,
+
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+			var self = this;
+
+			this.render();
+		},
+
+		render : function(){
+			var self = this;
+			this.$el.html( this.template );
+			rivets.bind( this.$el, { model : this.model } );
+		}
+		
+	})
+
+	Model.prototype.__viewconstructor__ = View;
+	
+	return {
+		Model : Model,
+		View : View
+	}
+})
+
+//======================================
+// Float.js
+// Float类型参数编辑组件
+// todo 加入没有最大和最小值的情况
+//=======================================
+
+define("Core/UIBase/Float-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			value : 0,
+			min : -100000,
+			max : 100000,
+			step : 0
+		},
+		initialize : function(){
+			this.on('change:value', function(){
+				if(_.isNaN(this.get('value'))){
+					this.set('value', 0);
+				}
+				if(this.get('value') < this.get('min') ){
+					this.set('value', this.get('min'))
+				}
+				if(this.get('value') > this.get('max') ){
+					this.set('value', this.get('max'))
+				}
+			}, this);
+
+			this.on('change:min', function(){
+				if(this.get('min') > this.get('max')){
+					this.set('min', this.get('max'));
+				}
+				if(this.get('min') > this.get('value')){
+					this.set('value', this.get('min'));
+				}
+			})
+
+			this.on('change:max', function(){
+				if(this.get('min') > this.get('max')){
+					this.set('max', this.get('min'));
+				}
+				if(this.get('max') < this.get('value')){
+					this.set('value', this.get('max'));
+				}
+			})
+		}
+	});
+
+	var View = Backbone.View.extend({
+		
+		//type 全部大写
+		type : 'FLOAT',
+
+		model : null,
+
+		tagName : 'div',
+
+		className : 'lblend-float',
+
+		template : '<div class="lblend-percent"></div><label>{{label}}</label> <span>{{value}}</span>',
+
+		editModeTemplate : '<div class="lblend-percent"></div><input type="text" value="{{value}}" />',
+
+		editMode : false,
+
+		events : {
+			'click ' : 'enterEditMode',
+			'mousedown ' : 'enterDragMode'
+		},
+
+		initialize : function(){
+			if( ! this.model){
+				this.model = new Model;
+			}
+
+			this.model.on('change:value', this.updateValue, this);
+			this.model.on('change:max', this.updatePercent, this);
+			this.model.on('change:min', this.updatePercent, this);
+
+			this.model.on('change:name', function(){
+				this.$el.find('label').html(this.model.get('name'));
+			}, this)
+			
+			this.render();
+		},
+
+		render : function(){
+
+			if(this.editMode){
+
+				this.$el.html(_.template(this.editModeTemplate, {
+					value : Math.round(this.model.get('value')*1000)/1000
+				}))
+			}
+			else{
+
+				this.$el.html(_.template(this.template, {
+					label : this.model.get('name'),
+					value : Math.round(this.model.get('value')*1000)/1000
+				}));
+			}
+			//update the percent bar
+			this.updatePercent();
+		},
+
+		updateValue : function(){
+
+			if( this.editMode){
+
+				this.$el.find('input').val(Math.round(this.model.get('value')*1000)/1000);
+			}else{
+
+				this.$el.find('span').html(Math.round(this.model.get('value')*1000)/1000);
+			}
+			this.updatePercent();
+		},
+
+		updatePercent : function(){
+
+			var percent = (this.model.get('value') - this.model.get('min'))  / (this.model.get('max') - this.model.get('min'));
+			this.$el.find('.lblend-percent').width(percent * 100+'%');
+		},
+
+		enterEditMode : function(){
+			var self = this;
+
+			if(this.editMode){
+				return ;
+			}
+			this.editMode = true;
+			this.render();
+
+			var $input = this.$('input');
+			$input.focus();
+
+			//exit edit mode when blur
+			$input.blur(function(){
+				self.editMode = false;
+				self.render();
+			})
+			//update the value
+			$input.change(function(){
+				self.model.set('value', parseFloat(this.value));
+			})
+		},
+
+		enterDragMode : function(e){
+
+			if( this.editMode){
+				return true;
+			}
+
+			var self = this,
+				oldX = e.pageX;
+
+			function mouseMoveHandler(e){
+
+				var x = e.pageX;
+				var offsetX = x - oldX;
+				self.model.set('value', self.model.get('value')+offsetX*self.model.get('step'));
+				oldX = x;
+			}
+
+			function mouseUpHandler(e){
+
+				$(document.body).unbind('mousemove', mouseMoveHandler);
+				$(document.body).unbind('mouseup', mouseUpHandler);
+				
+			}
+
+			$(document.body).bind('mousemove', mouseMoveHandler);
+
+			$(document.body).mouseup('mouseup', mouseUpHandler);
+		}
+
+	});
+	//
+	//Float类型参数的编辑界面，支持拖拽调整大小，单击进行输入的交互
+	//
+	exports.View = View;
+
+	exports.Model = Model;
+
+	//这个Model对应的View
+	Model.prototype.__viewconstructor__ = View;
+})
+
+//=================
+// Input.js
+// 
+//=================
+define("Core/UIBase/Input-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			value : ''
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'INPUT',
+
+		tagName : 'div',
+
+		className : 'lblend-input',
+
+		model : null,
+
+		template : '<label class="lblend-input-label" data-html="model.name"></label><input type="text" data-value="model.value" />',
+
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+			var self = this;
+
+			this.render();
+		},
+
+		render : function(){
+			var self = this;
+			this.$el.html( this.template );
+			rivets.bind( this.$el, { model : this.model } );
+		}
+
+	})
+
+	Model.prototype.__viewconstructor__ = View;
+	
+	return {
+		Model : Model,
+		View : View
+	}
+})
+
+//=================
+// Label.js
+// 
+//=================
+define("Core/UIBase/Label-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			value : ''
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'LABEL',
+
+		tagName : 'div',
+
+		className : 'lblend-label',
+
+		model : null,
+
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+			var self = this;
+
+			this.model.on('change:value', function(model, value){
+				self.$el.html(value);
+			})
+			this.render();
+		},
+
+		render : function(){
+			var self = this;
+			this.$el.html(this.model.get('value'));
+		}
+		
+	})
+
+	Model.prototype.__viewconstructor__ = View;
+	
+	return {
+		Model : Model,
+		View : View
+	}
+})
+
+//===================================
+// Color.js
+// use jquery color picker for color picking
+// http://www.eyecon.ro/colorpicker/
+//===================================
+define("Core/UIBase/Color-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			color : 0	//hex value
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'COLOR',
+
+		tagName : 'div',
+
+		className : 'lblend-color',
+
+		template : '<label class="lblend-color-label">{{label}}</label><div class="lblend-color-picker"></div>',
+
+		$picker : null,
+
+		colorPickerId : '',
+
+		initialize : function(){
+
+			this.model.on('change:name', function(model, name){
+				this.$el.children('.lblend-color-label').html(name);
+			}, this)
+			this.model.on('change:color', function(model, color, options){
+
+				this.$picker.css({
+					'background-color' : '#' + color.toString(16)
+				})
+				if(options.triggeronce){
+					return;
+				}
+				$picker.ColorPickerSetColor(color);
+			}, this)
+
+			this.render();
+
+			this.on('dispose', function(){
+				$('#'+this.colorPickerId).remove();
+			}, this)
+		},
+
+		render : function(){
+			var self = this;
+
+			this.$el.html(_.template(this.template, {
+				label : this.model.get('name')
+			}))
+			var $picker = this.$el.find('.lblend-color-picker');
+			
+			var color = this.model.get('color');
+			$picker.ColorPicker({
+				color : color.toString(16),	//不支持多种颜色格式实在是有点不爽
+				onChange : function(hsb, hex, rgb){
+					self.model.set('color', hex, {
+						'triggeronce' : true
+					});
+				}
+			})
+			if( color ){
+				$picker.css({
+					'background-color' : '#' + color.toString(16)
+				})
+			}
+
+			this.$picker = $picker;
+			this.colorPickerId = this.$picker.data('colorpickerId');
+		}
+	})
+
+	return {
+		Model : Model,
+		View : View
+	}
+})
+
+//=========================
+// Layer.js
+// 容器组件
+// todo 尽量减少重渲染次数
+//=========================
+
+define("Core/UIBase/Layer-debug", [], function(require, exports, module){
+	
+	var Collection = Backbone.Collection.extend({
+		name : ''
+	});
+
+	//存放Collection的Wrapper Model
+	//
+	//因为父元素的Collection不能用Collection作子元素，所以需要一个Model来
+	//做包装放入父元素的Collection内
+	//
+	//只有collection一个值
+	var WrapperModel = Backbone.Model.extend({
+		defaults : {
+			collection : new Collection
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'LAYER',
+
+		tagName : 'div',
+
+		className : 'lblend-layer',
+
+		collection : null,
+
+		template : '<h5 class="lblend-layer-label">{{label}}</h5><div class="lblend-list"></div>',
+
+		//
+		//用作子元素的所有一渲染的view的缓存
+		//
+		_views : [],
+
+		initialize : function(){
+			if( ! this.collection){
+				this.collection = new Collection;
+			}
+			
+			this.collection.on('add', this._addModel, this);
+
+			this.collection.on('remove', this._removeModel, this);
+
+			this.render();
+
+			//recursive
+			this.on('dispose', function(){
+				this.removeAll();
+			}, this);
+		},
+
+		$list : null,
+		$label : null,
+
+		render : function(){
+			var self = this;
+
+			self.el.innerHTML = _.template(this.template, {
+				label : this.collection.name || ''
+			});
+			self._views = [];
+			// 缓存list的dom和label的dom
+			self.$list = self.$el.children('.lblend-list');
+			self.$label = self.$el.children('.lblend-layer-label');
+
+			//递归渲染所有子元素
+			self.collection.forEach(function(item, index){
+				
+				var view;
+
+				if(item instanceof WrapperModel){	//子元素也是容器层（包括Vector类）
+					var col = item.get('collection');
+					view = new col.__viewconstructor__({
+						collection : col
+					})
+				}else{
+					view = new item.__viewconstructor__({
+						model : item
+					});
+				}
+
+				if(view){
+
+					view.parent = self;
+
+					view.render();
+					self.$list.append(view.$el);
+					self._views.push(view)
+				}
+			})
+		},
+		
+		_addModel : function(model){
+			//如果该组件只是被创建，还没有被渲染成dom元素
+			//则直接渲染
+			var view;
+			if(model instanceof WrapperModel){	//是容器层
+				var coll = model.get('collection');
+				view = new coll.__viewconstructor__({
+					collection : coll
+				})
+			}else{
+				view = new model.__viewconstructor__({
+					model : model
+				});
+			}
+			
+			view.parent = this;
+			this.$list.append(view.$el);
+			this._views.push(view);
+		},
+
+		_removeModel : function(model){
+
+			_.each(this._views, function(view){
+				if(view.model === model || view.collection === model.get('collection')){
+					_.without(this._views, view);
+					view.$el.remove();
+				}
+			})
+		},
+
+		appendView : function(view){
+
+			if(view.parent){
+				view.parent.removeView(view);
+			}
+
+			if(view.model){
+				// 不触发collection的添加事件
+				this.collection.push(view.model, {silent : true});
+			}
+			else if(view.collection){
+
+				var model = new WrapperModel({
+					collection : view.collection
+				});
+				this.collection.push(model, {silent : true});
+			}
+
+			if(view){
+				view.parent = this;
+				this.$list.append(view.$el);
+				this._views.push(view);
+			}
+		},
+
+		removeView : function(view){
+			var index = _.indexOf(this._views, view);
+			if(index < 0){
+				return null;
+			}
+			_.without(this._views, view);
+			view.$el.remove();
+
+			this.collection.remove(this.collection.at(index), {
+				silent : true
+			});
+
+			// 
+			view.trigger('dispose');
+		},
+
+		removeAll : function(){
+			_.each(this._views, function(view){
+				view.$el.remove();	
+				view.trigger('dispose');
+			})
+			this._views = [];
+			this.collection.reset();
+		},
+
+		findByType : function(type){
+			
+			var self = this;
+
+			var result = [];
+
+			function find(view){
+				if(view._views){
+
+					_.each(view._views, function(_view, index){
+						//递归查找
+						find(_view);
+					})
+				}
+
+				if(type.toUpperCase() == view.type){
+					result.push(view);
+				}
+			}
+			find(this);
+
+			return result;
+		},
+
+		findByName : function(name){
+
+			var self = this;
+
+			var result = null;
+
+			function find(view){
+				if(view._views){
+					_.each(view._views, function(_view, index){
+						find(_view);
+					})
+				}
+				if(view.model){
+					if(view.model.get('name') == name){
+						result = view;
+					}
+				}
+				else if(view.collection){
+					if(view.collection.name == name){
+						result = view;
+					}
+				}
+			}
+			find(this);
+
+			return result;
+		},
+
+		setName : function(name){
+			this.collection.name = name;
+			this.$el.children('h5.lblend-layer-label').html(name);
+		},
+
+		hideLabel : function(){
+			this.$el.children('h5').css({display:'none'});
+		},
+
+		showLabel : function(){
+			this.$el.children('h5').css({display:'auto'})
+		}
+
+	})
+
+	exports.Collection = Collection;
+
+	exports.WrapperModel = WrapperModel;
+	
+	exports.View = View;
+
+	Collection.prototype.__viewconstructor__ = View;
+})
+
+//=======================================
+//Link.js
+//节点连接线组件
+//依赖Raphael来绘制连接线
+//
+//将source和target改成位置来降低耦合度
+//=======================================
+
+define("Core/UIBase/Link-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults:{
+			source : {left:0, top:0},
+			target : {left:0, top:0}
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'LINK',
+
+		model : null,
+
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+
+			this.model.on('change:source', function(){
+
+				this._updatePath();
+			}, this);
+
+			this.model.on('change:target', function(){
+
+				this._updatePath();
+			}, this);
+
+		},
+
+		render : function(svg){
+			var p1 = this.model.get('source') || {left : 0, top:0},
+				p2 = this.model.get('target') || p1;
+
+			this.el = svg.create('path');
+			svg.attr(this.el, 'd', this._getPathString(p1, p2));
+			// 默认颜色
+			svg.attr(this.el, {
+				'stroke' : '#c8c828',
+				'stroke-width' : 2,
+				'fill' : 'none'
+			});
+			// cache svg context
+			this._svg = svg;
+
+		},
+
+		_updatePath : function(){
+			if( ! this._svg){
+				return;
+			}
+			var p1 = this.model.get('source') || {left : 0, top:0},
+				p2 = this.model.get('target') || p1;
+
+			this._svg.attr(this.el, 'd', this._getPathString(p1, p2));
+		},
+
+		_getPathString : function(p1, p2){
+
+			var c1 = {left : p1.left+60, top : p1.top},
+				c2 = {left : p2.left-60, top : p2.top};
+
+			return _.template("M {{p1x}} {{p1y}} C {{c1x}} {{c1y}} {{c2x}} {{c2y}} {{p2x}} {{p2y}}",
+						{
+							p1x : p1.left,
+							p1y : p1.top,
+							c1x	: c1.left,
+							c1y : c1.top,
+							c2x : c2.left,
+							c2y : c2.top,
+							p2x : p2.left,
+							p2y : p2.top				
+						});
+		},
+
+		remove : function(){
+			this.el.parentNode.removeChild(this.el);
+		}
+	})
+
+	exports.View = View;
+
+	exports.Model = Model;
+
+	Model.prototype.__viewconstructor__ = View;
+})
+
+//============================================
+// Node.js
+// 节点编辑器的节点组件，继承自Layer组件，但是提供了更详细的样式和交互
+// 依赖jquery ui提供拖拽的交互
+// 关闭节点的触发close事件
+// todo 加入resizable
+//============================================
+
+define("Core/UIBase/Node-debug", ["./Layer-debug"], function(require, exports, module){
+	var Layer = require('./Layer-debug');
+
+	var Collection = Layer.Collection.extend({
+	});
+
+	var View = Layer.View.extend({
+
+		className : 'lblend-node',
+
+		template : '<h5 class="lblend-node-label">{{label}}</h5><div class="lblend-list"></div><div class="lblend-close" title="close"></div>',
+
+		collection : null,
+
+		render : function(){
+
+			var self = this;
+
+			//调用父类的渲染程序
+			Layer.View.prototype.render.call(this);
+
+			//使用jquery ui提供拖拽的交互
+			this.$el.draggable({
+				// scroll : true,
+				scrollSensitivity: 40,
+				stack : '.lblend-node',
+				scrollSpeed : 60,
+				opacity: 0.5,
+				handle : 'h5',
+				cursor: "move",
+				drag : function(){
+					self.trigger('drag')
+				},
+				start : function(){
+					self.trigger('dragstart')
+				}
+			});
+			this.$el.css('position', 'absolute');
+
+			this.cachePinViews();
+
+			this.$el.find('.lblend-close').click(function(){
+				self.trigger('close');
+			})
+		},
+		//缓存InputPinView和OutputPinView
+		cachePinViews : function(){
+
+			this._inputPinViews = this.findByType('INPUTPIN');
+			this._outputPinViews = this.findByType('OUTPUTPIN');
+		},
+
+		setName : function(name){
+			this.collection.name = name;
+			this.$el.find('h5.lblend-node-label').html(name);
+		}
+	});
+
+	exports.Collection = Collection;
+
+	exports.View = View;
+
+	Collection.prototype.__viewconstructor__ = View;
+
+})
+
+//============================================
+// Panel.js
+//============================================
+
+define("Core/UIBase/Panel-debug", ["./Layer-debug"], function(require, exports, module){
+
+	var Layer = require('./Layer-debug');
+
+	var Collection = Layer.Collection.extend({
+	});
+
+	var View = Layer.View.extend({
+
+		type : 'PANEL',
+
+		tagName : 'div',
+
+		className : 'lblend-panel',
+
+		template : '<h5 class="lblend-panel-label">{{label}}</h5><div class="lblend-list"></div>',
+
+		collection : null,
+
+		render : function(){
+
+			var self = this;
+
+			//调用父类的渲染程序
+			Layer.View.prototype.render.call(this);
+
+		},
+
+		setName : function(name){
+			this.collection.name = name;
+			this.$el.find('h5.lblend-panel-label').html(name);
+		}
+	});
+
+	exports.Collection = Collection;
+
+	exports.View = View;
+
+	Collection.prototype.__viewconstructor__ = View;
+
+})
+
+//=================
+// Select.js
+// 提供change事件
+//=================
+define("Core/UIBase/Select-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',	//这里name对应option的value
+			value : '',
+			selected : false
+		}
+	});
+
+	var Collection = Backbone.Collection.extend({
+		
+		select : function(name){
+			this.forEach(function(model){
+				if(model.get('name') == name){
+					model.set('selected', true);
+				}else{
+					model.set('selected', false);
+				}
+			})
+		}
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'SELECT',
+
+		tagName : 'div',
+
+		className : 'lblend-select',
+
+		template : '<label class="lblend-select-label">{{label}}</label><a class="lblend-select-button lblend-common-button"></a>',
+
+		collection : null,
+
+		events : {
+			'click .lblend-select-button' : 'toggle'
+		},
+
+		inSelect : false,
+
+		initialize : function(){
+
+			if( ! this.collection){
+				this.collection = new Collection;
+			}
+			var self = this;
+
+			this.collection.on('add', this.add, this);
+			this.collection.on('change:selected', function(item, value){
+				if( value ){
+					
+					this.trigger('change', item);		
+				}
+			}, this)
+
+			this.render();
+		},
+
+		render : function(){
+			var self = this;
+			this.$el.html(_.template(this.template, {
+				label : this.collection.name || ''
+			}));
+			
+		},
+
+		add : function(model){
+			if(this.collection.where({
+				selected :true
+			}).length == 0){
+				this.select(model.get('name'));
+			}
+		},
+
+		toggle : function(){
+			if( this.inSelect){
+				
+				$('.lblend-select-dropdown-list').remove();
+				this.inSelect = false;
+			}else{
+
+				var self = this;
+				$('.lblend-select-dropdown-list').remove();
+				
+				$ul = $('<ul class="lblend-select-dropdown-list"></ul>');
+				this.collection.forEach(function(model){
+					$ul.append(self.createItem(model));
+				});
+
+				var $button = $('.lblend-select-button'),
+				offset = $button.offset();
+				$(document.body).append($ul);
+				$ul.css({
+					'position' : 'absolute'
+				})
+				$ul.offset({
+					left : offset.left,
+					top : offset.top+$button.outerHeight()+3
+				})
+				
+				this.inSelect = true;
+			}
+		},
+
+		createItem : function(model){
+			var self = this;
+			var $li = $('<li></li>');
+			$li.data('name', model.get('name'));
+			$li.html(model.get('value'));
+			$li.click(function(){
+				self.select(model.get('name'));
+				self.toggle();
+			});
+			if(model.get('selected')){
+				$li.addClass('selected');
+			}
+			return $li;
+		},
+
+		setName : function(name){
+			this.collection.name = name;
+			this.$el.children('label.lblend-select-label').html(name);
+		},
+
+		select : function(name){
+
+			this.collection.select(name);
+
+			var $ul = $('.lblend-select-dropdown-list'),
+				$lis = $ul.children('li'),
+				self = this;
+
+			$lis.removeClass('selected');
+			$ul.children('li').each(function(){
+				var $this = $(this);
+				if( $this.data('name') == name ){
+					$this.addClass('selected');
+				}
+			})
+			
+			var model = this.collection.where({
+				name : name
+			})[0];
+			if(model){
+				this.$el.find('.lblend-select-button').html(model.get('value'));
+			}
+		}
+		
+	})
+
+	Collection.prototype.__viewconstructor__ = View;
+
+	return {
+		Collection : Collection,
+		View : View
+	}
+})
+
+//=======================================
+//Texture.js
+//纹理编辑组件
+//=======================================
+
+define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports, module){
+
+	var Float = require('./Float-debug');
+
+	var textureID = 0;
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			filename : 'none',	//文件位置
+			texture : null	//THREE.Texture
+		}
+	});
+
+	var View = Backbone.View.extend({
+
+		type : 'TEXTURE',
+
+		tagName : 'div',
+
+		className : 'lblend-texture',
+
+		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-filename" data-html="model.filename"></span>',
+
+		popupTemplate : '<div class="lblend-texture-popup"><div class="lblend-texture-popup-image"></div></div>',
+
+		model : null,
+
+		$popup : null,
+		popup : null,
+
+		textureID : 0,
+
+		events : {
+			'click .lblend-texture-filename' : 'toggleImage'
+		},
+		
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+			this.textureID = textureID++;
+
+			this.render();
+
+			this.model.on('change:texture', function(model, value){
+				this.updateTexture();
+			}, this);
+
+			this.on('dispose', function(){
+				$('#texturepopup_'+this.textureID).remove();
+			})
+		},
+
+		render : function(){
+
+			this.$el.html( this.template );
+
+			rivets.bind(this.$el, {model:this.model});
+
+			this.$popup = $(this.popupTemplate);
+			this.popup = this.$popup[0];
+
+			this.$popup.attr('id', 'texturepopup_'+this.textureID);
+			this.updateTexture();
+		},
+
+		toggleImage : function(){
+			var $el = $('#texturepopup_'+this.textureID);
+			if( $el.length ){
+				$el.remove();
+			}
+			else{
+				var offset = this.$el.offset();
+
+				this.$popup.css({
+					left : offset.left,
+					top : offset.top+this.$el.height()+2
+				})
+				$(document.body).append(this.$popup);
+			}
+
+		},
+
+		updateTexture : function(){
+			var $el = this.$popup.find('.lblend-texture-popup-image')
+			$el.find('img').remove();
+			if(this.model.get('texture')){
+				$el.append(this.model.get('texture').image)
+			}
+			else{
+				$el.append('<img clas=".lblend-texture-default" />');
+			}
+		},
+
+
+	})
+
+	exports.View = View;
+
+	exports.Model = Model;
+
+	Model.prototype.__viewconstructor__ = View;
+})
+
+//=====================
+// Tree.js
+// tree view
+//=====================
+define("Core/UIBase/Tree-debug", [], function(require, exports, module){
+
+	// data structure
+	// + type : 		file|folder
+	// + name : ""
+	// + icon : "" 		icon class
+	// + owner
+	// + children : []	if type is folder
+	// + dataSource 	asset path or scene node json data
+	// + dataType 		type of binded asset or node
+	//
+	// dataSource and dataType is maily for the dataTransfer
+	var Model = Backbone.Model.extend({
+		defaults : {
+			json : []
+		}
+	});
+
+	var File = function(name){
+
+		this.type = 'file';
+		this.name = name;
+		this.owner = "";
+
+		this.acceptConfig = {};
+
+		this.$el = null;
+	}
+
+	_.extend(File.prototype, Backbone.Events);
+
+	File.prototype.getRoot = function(){
+		var root = this;
+		while(root.parent){
+			root = root.parent;
+		}
+		return root;
+	}
+	File.prototype.genElement = function(){
+
+		var html = _.template('<li class="lblend-tree-file">\
+						<span class="lblend-tree-title" draggable="true">\
+							<span class="{{icon}}"></span>\
+							{{name}}\
+						</span>\
+					</li>', {
+						icon : this.icon,
+						name : this.name
+					})
+		var $el = $(html);
+		this.$el = $el;
+
+		$el.data('path', this.getPath() );
+
+		var self = this;
+
+		// draggable
+		$el[0].addEventListener('dragstart', function(e){
+
+			e.stopPropagation();
+
+			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
+		}, false)
+
+
+		$el.click(function(e){
+			e.stopPropagation();
+			if( ! e.shiftKey){
+				self.getRoot().traverse(function(node){
+					node.unselect();
+				})
+			}
+			self.select();
+		})
+
+		return $el;
+	}
+	File.prototype.select = function(silent){
+		this.$el.addClass('active');
+
+		if( ! silent){
+			this.getRoot().trigger('selected:node', this);
+		}
+		
+	}
+	File.prototype.unselect = function(){
+		if( this.$el.hasClass('active') ){
+			this.$el.removeClass('active');
+			this.getRoot().trigger('unselected:node', this);
+		}
+	}
+	File.prototype.getPath = function(){
+		if( ! this.parent ){
+			return this.name;
+		}
+		return this.parent.getPath() + this.name;
+	}
+	File.prototype.setName = function(name, silent){
+		
+		this.name = name;
+
+		if( this.$el ){
+			this.$el.children('.lblend-tree-title').html( name );
+		}
+		if( ! silent){
+			this.getRoot().trigger('updated:name', this, name);
+		}
+	}
+	File.prototype.toJSON = function(){
+		var item = {
+			type : this.type,
+			name : this.name,
+			path : this.getPath(),
+			icon : this.icon,
+			owner : this.owner,
+			dataSource : _.isFunction(this.dataSource) ? this.dataSource() : this.dataSource,
+			dataType : this.dataType
+		}
+
+		return item;
+	}
+
+	var Folder = function(name){
+
+		this.name = name;
+		this.type = 'folder';
+
+		this.owner = '';	//distinguish different trees
+
+		this.children = [];
+
+		this.$el = null;
+		this.$sub = null;
+
+		// config to verify if this folder can accept
+		// any transferred data
+		this.acceptConfig = {
+			'default' : {
+				// an verify function
+				accept : function(json){
+					if( ! (json instanceof FileList) ){
+						if( json.owner == this.owner ){
+							return true;
+						}
+					}
+				},
+				// action after verify succeed
+				accepted : function(json){
+					// default action after target is dropped and accepted
+					// move an other node to the folder
+					var node = this.getRoot().find(json.path);
+
+					if( node){
+						if( node.parent != self ){
+							this.add(node);
+						}
+					}
+				}
+
+			}
+		}
+	}
+
+	_.extend(Folder.prototype, Backbone.Events);
+
+	Folder.prototype.setName = function(name, silent){
+
+		this.name = name;
+		if( this.$el ){
+			this.$el.children('.lblend-tree-title').html( name );
+		}
+		if( ! silent){
+			this.getRoot().trigger('updated:name', this, name);
+		}
+	}
+	Folder.prototype.getRoot = function(){
+		var root = this;
+		while(root.parent){
+			root = root.parent;
+		}
+		return root;
+	}
+	Folder.prototype.add = function(node, silent){
+		var isMove = false;
+		if(node.parent){
+			isMove = true;
+			var parentPrev = node.parent;
+
+			if(node.parent == this){
+				return;
+			}
+			node.parent.remove(node, true);
+		}
+		this.children.push( node );
+
+		node.parent = this;
+		// add element
+		this.$sub.append( node.genElement() );
+
+		node.owner = this.owner;
+
+		if( ! silent){
+			if( isMove ){
+				this.getRoot().trigger('moved:node', this, parentPrev, node);
+			}else{
+				this.getRoot().trigger('added:node', this, node);
+			}
+		}
+	}
+	Folder.prototype.remove = function(node, silent){
+		if( _.isString(node) ){
+			node = this.find(node);
+		}
+		// call before the node is really removed
+		// because we still need to get node path in the event handler
+		if( ! this.silent){
+
+			this.getRoot().trigger('removed:node', this, node);
+		}
+
+		node.parent = null;
+		_.without( this.children, node);
+		// remove element
+		node.$el.remove();
+
+	}
+	Folder.prototype.getPath = function(){
+		if( ! this.parent ){
+			return this.name + '/';
+		}
+		return this.parent.getPath() + this.name + '/';
+	}
+	Folder.prototype.genElement = function(){
+
+		var html = _.template('<li class="lblend-tree-folder">\
+						<span class="lblend-tree-title" draggable="true">\
+							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
+							<span class="{{icon}}"></span>\
+							{{name}}\
+						</span>\
+						<ul>\
+						</ul>\
+					</li>', {
+						icon : this.icon,
+						name : this.name
+					})
+
+		var $el = $(html),
+			$ul = $el.children('ul');
+
+		$el.data('path', this.getPath());
+
+		var self = this;
+		_.each(this.children, function(child){
+			$ul.append( child.genElement() );
+		})
+
+		// draggable
+		$el[0].addEventListener('dragstart', function(e){
+
+			e.stopPropagation();
+
+			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
+		}, false)
+
+		$el.click(function(e){
+			e.stopPropagation();
+			if( ! e.shiftKey){
+				self.getRoot().traverse(function(node){
+					node.unselect();
+				})
+			}
+			self.select();
+			self.toggleCollapase();
+		})
+
+		this.$el = $el;
+		this.$sub = $ul;
+
+		return $el;
+	}
+
+	// default accept judgement
+
+	Folder.prototype.accept = function(accept, accepted){
+		this.acceptConfig.push({
+			accept : accepted
+		})
+	}
+
+	Folder.prototype.select = function(silent){
+		this.$el.addClass('active');
+		this.selected = true;
+
+		if( ! silent){
+			this.getRoot().trigger('selected:node', this);
+		}
+		
+	}
+
+	Folder.prototype.unselect = function(){
+		if( this.$el.hasClass('active') ){
+			this.$el.removeClass('active');
+			this.selected = false;
+			this.getRoot().trigger('unselected:node', this);
+		}
+	}
+
+	Folder.prototype.toggleCollapase = function(){
+		this.$el.toggleClass('collapse');
+		var $btn = this.$el.find('.button-toggle-collapse');
+		if(this.$el.hasClass('collapse')){
+			$btn.removeClass('icon-unfold');
+			$btn.addClass('icon-fold');
+		}else{
+			$btn.removeClass('icon-fold');
+			$btn.addClass('icon-unfold');
+		}
+	}
+
+	Folder.prototype.traverse = function(callback){
+		callback( this );
+		_.each( this.children, function(child){
+			if( ! child.traverse){	// is a file
+				callback( child );
+			}else{
+				child.traverse( callback );
+			}
+		} )
+	}
+
+	// find a folder or file 
+	Folder.prototype.find = function(path){
+
+		var root = this;
+		// abosolute path
+		if( path.charAt(0) == '/'){
+			path = path.substring(1);
+			root = this.getRoot();
+		}
+		
+		return _.reduce(_.compact(path.split('/')), function(node, name){
+			if( ! node){
+				return;
+			}
+			if( name == '..'){
+				return node.parent;
+			}
+			else if( !name || name =='.'){
+				return node;	
+			}
+			else{
+				return _.find(node.children, function(item){
+					return item.name==name
+				});
+			}
+		}, root);
+	}
+
+	Folder.prototype.createFromJSON = function(json){
+		
+		var self = this;
+
+		json = _.isArray(json) ? json : [json];
+
+		_.each(json, function(item){
+
+			if( item.type == 'folder'){
+
+				var folder = new Folder(item.name);
+
+				folder.icon = item.icon;
+				folder.dataSource = item.dataSource;
+				folder.dataType = item.dataType;
+
+				self.add(folder);
+
+				_.each(item.children, function(child){
+
+					folder.createFromJSON(child);
+				})
+			}
+			else if( item.type == 'file' ){
+
+				var file = new File(item.name);
+
+				file.icon = item.icon;
+				file.source = item.source;
+				file.targetType = item.targetType;
+
+				self.add(file);
+			}
+		})
+	}
+
+	Folder.prototype.toJSON = function(){
+		var item = {
+			type : this.type,
+			name : this.name,
+			path : this.getPath(),
+			icon : this.icon,
+			owner : this.owner,
+			dataSource : _.isFunction(this.dataSource) ? this.dataSource() : this.dataSource,
+			dataType : this.dataType,
+			children : []
+		}
+
+		_.each(this.children, function(child){
+			this.children.push( child.toJSON() );
+		})
+		return item;
+	}
+
+	Folder.prototype.createFolder = function(path, silent){
+		path = _.compact(path.split('/'));
+		var ret = _.reduce(path, function(node, name){
+			var folder = node.find(name);
+			if( !folder ){
+				folder = new Folder(name);
+				node.add( folder, silent );
+			}
+			return folder;
+		}, this);
+
+		if( ! silent){
+
+			this.getRoot().trigger('created:folder', this, ret);
+		}
+		return ret;
+	}
+	Folder.prototype.createFile = function(path, silent){
+		dir = _.compact(path.split('/'));
+		var fileName = dir.pop();
+		var folder = this.createFolder(dir.join('/'));
+		var file = folder.find(fileName);
+		if( ! file){
+			file = new File( fileName );
+			folder.add( file, silent );
+
+			if( ! silent){
+				this.getRoot().trigger('created:file', this, file);
+			}
+		}
+
+		return file;
+	}
+
+	var Root = function(){
+		Folder.call(this);
+		this.name = '/';
+	};
+	Root.prototype = new Folder;
+	Root.prototype.getPath = function(){
+		return '/';
+	}
+	Root.prototype.genElement = function(){
+
+		var $el = $('<div class="lblend-tree-root">\
+						<ul></ul>\
+					</div>');
+		var $ul = $el.find('ul');
+		this.$sub = $ul;
+		this.$el = $el;
+		
+		_.each(this.children, function(child){
+			$ul.append( child.genElement() );
+		})
+
+		return $el;
+	}
+
+	var View = Backbone.View.extend({
+
+		className : 'lblend-tree',
+
+		tagName : 'div',
+
+		root : null,
+
+		events : {
+			'dragenter li' : 'dragenterHandler',
+			'dragleave li' : 'dragleaveHandler',
+			'drop li' : 'dropHandler'
+		},
+
+		initialize : function(){
+			var self =this;
+
+			if( ! this.model ){
+				this.model = new Model;
+			};
+			if( ! this.root ){
+				this.root = new Root;
+			}
+			this.model.on('change:json', function(){
+				this.render();
+			}, this);
+			this.root.on('all', function(){
+				this.trigger.apply(this, arguments);
+			}, this);
+
+			this.render();
+
+			this._dragenter = [];
+			this._dragleave = [];
+			this._drop = [];
+			// folder and file drag in the same tree
+			this.drop(function(json, e){
+				
+				var node = self.find($(this).data('path'));
+				
+				_.each(node.acceptConfig, function(config){
+					if( config.accept.call(node, json) ){
+						config.accepted.call(node, json);
+					}
+				})
+			})
+		},
+
+		render : function(){
+
+			this.root.createFromJSON( this.model.get('json') );
+
+			this.$el.html('');
+			this.$el.append( this.root.genElement() );
+
+		},
+
+		find : function(path){
+			return this.root.find(path);
+		},
+
+		remove : function(path, silent){
+			var node = this.find(path);
+			if(node){
+				node.parent.remove(node, silent);
+			}
+		},
+
+		select : function(path, multiple, silent){
+			if( ! multiple){
+				this.root.traverse(function(node){
+					node.unselect();
+				})
+			}
+			this.root.find(path).select(silent);
+		},
+
+		_dragenter : [],
+
+		_dragleave : [],
+
+		_drop : [],
+
+		dragenterHandler : function(e){
+			e.stopPropagation();
+			e.preventDefault();
+
+			$(e.currentTarget).addClass('lblend-tree-dragover');
+
+			_.each(this._dragenter, function(func){
+				func.call(e.currentTarget, e);
+			})
+		},
+
+		dragleaveHandler : function(e){
+			e.stopPropagation();
+			e.preventDefault();
+
+			$(e.currentTarget).removeClass('lblend-tree-dragover');
+
+			var self = this;
+			_.each(this._dragleave, function(func){
+				func.call(e.currentTarget, e);
+			})
+		},
+
+		dropHandler : function(e){
+			e.stopPropagation();
+			e.preventDefault();
+
+			$(e.currentTarget).removeClass('lblend-tree-dragover');
+
+			var data;
+			if(e.dataTransfer.files.length){
+				// data from native files
+				data = e.dataTransfer.files;
+			}else{
+				data = JSON.parse(e.dataTransfer.getData('text/plain'));
+			}
+			_.each(this._drop, function(func){
+				func.call(e.currentTarget, data, e);
+			})
+		},
+
+		drop : function(drop, dragenter, dragleave){
+			
+			if( drop ){
+				this._drop.push(drop);
+			}
+			if( dragenter ){
+				this._dragenter.push(dragenter);
+			}
+			if( dragleave ){
+				this._dragleave.push(dragleave);
+			}
+		}
+
+	})
+
+
+	Model.prototype.__viewconstructor__ = View;
+
+	exports.Model = Model;
+
+	exports.View = View;
+
+	exports.File = File;
+
+	exports.Folder = Folder;
+
+	exports.Root = Root;
+})
+
+//===============================================
+// Vector.js
+// 多个Float组件组成的向量编辑组件，尽管用collection作数据源，但是像Float一样也是一个原子组件
+//===============================================
+
+define("Core/UIBase/Vector-debug", ["./Float-debug"], function(require, exports, module){
+
+	var Float = require('./Float-debug');
+
+	//
+	//Float.Model的collection集合，需要自己定义label或name属性，
+	//name属性是该组件的标识符，再有父组件做管理的时候作为唯一标识符
+	//label属性是该组件的显示名称
+	//
+	var Collection = Backbone.Collection.extend({
+		name : '',
+		model : Float.Model
+	})
+
+	var View = Backbone.View.extend({
+
+		type : 'VECTOR',
+
+		tagName : 'div',
+
+		className : 'lblend-vector',
+
+		collection : null,
+
+		labelTemplate : '<label class="lblend-vector-label">{{label}}</label><div class="lblend-list"></div>',
+
+		initialize : function(){
+			if(! this.collection){
+				this.collection = new Collection;
+			}
+			var self = this;
+			this.collection.on('add', function(model){
+				var view = new Float.View({
+					model : model
+				});
+				self.$el.children('.lblend-list').append(view.$el);
+			})
+
+			this.render();
+		},
+
+		render : function(){
+			
+			var self = this;
+
+			self.el.innerHTML = _.template(this.labelTemplate, {
+
+				label : this.collection.label || this.collection.name || ''
+			});
+			
+			var $list = self.$el.children('.lblend-list');
+
+			//创建并且渲染Float组件
+			self.collection.forEach(function(model, index){
+				
+				var view = new Float.View({
+					model : model
+				});
+				view.render();
+				$list.append(view.$el);
+			})
+		},
+		// 因为Vector是使用collection，所以不能观察name的变化
+		// 这里只能加一个setName方法设置，不知道有木有更好的办法
+		setName : function(name){
+			this.collection.name = name;
+			this.$el.find('label.lblend-vector-label').html(name);
+		}
+	})
+
+	exports.Collection = Collection;
+
+	exports.View = View;
+
+	Collection.prototype.__viewconstructor__ = View;
+})
+
+//============================================
+//Video.js
+//视频编辑组件
+//============================================
+
+define("Core/UIBase/Video-debug", [], function(require, exports, module){
+
+
+	var Model = Backbone.Model.extend({
+
+		defaults : {
+			name : '',
+			video : null	//VideoDomElement
+		}
+	});
+
+	var View = Backbone.View.extend({
+
+		type : 'VIDEO',
+
+		model : null,
+
+		tagName : 'div',
+
+		className : 'lblend-video',
+
+		template : '<label>{{label}}</label><br />',
+
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+
+			this.model.on('change:video', function(){
+
+				if(this.el){
+
+					this.$el.find('video').remove();
+					if( this.model.get('video')){
+
+						this.el.appendChild(this.model.get('video'));
+					}else{
+
+						this.$el.append('<video class="lblend-video-default" />');
+					}
+				}
+			}, this);
+
+			this.model.on('change:name', function(){
+				this.$el.find('label').html(this.model.get('name'));
+			}, this)
+			
+			this.render();
+		},
+
+		render : function(){
+
+			this.el.innerHTML = _.template(this.template, {
+				label : this.model.get('name') || ''
+			});
+			if(this.model.get('video')){
+				this.el.appendChild(this.model.get('video'));
+			}else{
+
+				this.$el.append('<video class="lblend-video-default" />');
+			}
+		}
+	})
+
+	exports.Model = Model;
+
+	exports.View = View;
+
+	Model.prototype.__viewconstructor__ = View;
+})
+
+//=========================
+// Tab.js
+//=========================
+define("Core/UIBase/Tab-debug", ["./Layer-debug"], function(require, exports){
+
+	var Layer = require('./Layer-debug');
+
+	var Collection = Layer.Collection.extend({});
+
+	var View = Backbone.View.extend({
+
+		className : 'lblend-tab',
+
+		template : '<ul class="lblend-tab-tabs"></ul><div class="lblend-list"></div>',
+
+		tabs : null,
+
+		initialize : function(){
+
+			var self = this;
+			// name active view
+			this.tabs = new Backbone.Collection;
+
+			this.tabs.on('add', function(tab){
+				
+				self.renderTabs();
+
+				tab.on('change:active', function(){
+					if(tab.get('active')){
+						tab.get('$el').addClass('active');
+						tab.get('view').$el.css('display', 'block');
+					}else{
+						tab.get('$el').removeClass('active');
+						tab.get('view').$el.css('display', 'none');
+					}
+				})
+
+				self.tabs.forEach(function(_tab){
+					_tab.set('active', false);
+				})
+				tab.set('active', true);
+			})
+
+			this.tabs.on('remove', function(tab){
+				self.renderTabs();
+			})
+
+			Layer.View.prototype.initialize.call(this)
+		},
+
+		render : function(){
+
+			Layer.View.prototype.render.call(this);
+
+			this.renderTabs();
+		},
+
+		renderTabs : function(){
+			var self = this;
+			var $tabs = this.$el.children('.lblend-tab-tabs');
+			$tabs.html('');
+			this.tabs.forEach(function(tab){
+
+				var $el = $('<li>'+tab.get('name')+'</li>');
+				$el.click(function(){
+					self.tabs.forEach(function(_tab){
+						_tab.set('active', false);
+					});
+					tab.set('active', true);
+				})
+				$tabs.append($el);
+				tab.set('$el', $el);
+
+			})
+		},
+
+		_addModel : function(model){
+
+			Layer.View.prototype._addModel.call(this, model);
+
+			var view = _.last(this._views);
+
+			view.hideLabel();
+
+			var name = getModelName(model);
+
+			this.tabs.add({
+				name : name,
+				active : false,
+				// 该标签对应的view
+				view : view
+			})
+		},
+
+		_removeModel : function(model){
+
+			Layer.View.prototype._removeModel.call(this, model);
+
+			var name = getModelName(model);
+
+			this.tabs.remove(this.tabs.where({
+				name : name
+			})[0]);
+		},
+
+		appendView : function(view){
+
+			Layer.View.prototype.appendView.call(this, view);
+
+			var name = getViewName(view);
+
+			this.tabs.add({
+				name : name,
+				active : false,
+				// 该标签对应的view
+				view : view,
+				// 该标签的dom
+				$el : $('<li>'+name+'</li>')
+			})
+		},
+
+		removeView : function(view){
+
+			Layer.View.prototype.removeView.call(this, view);
+		},
+
+		active : function(tabName){
+			this.tabs.forEach(function(tab){
+				if(tab.get('name') == tabName){
+					tab.set('active', true);
+				}else{
+					tab.set('active', false);
+				}
+			});
+		}
+
+	})
+
+	// 判断是WrapperModel还是其它Model，并且获取其名字
+	var	getModelName = function(model){
+		var name;
+		if(model instanceof Layer.WrapperModel){
+			var coll = model.get('collection');
+			name = coll.name;
+		}else{
+			name = model.get('name');
+		}
+		return name;
+	}
+
+	var getViewName = function(view){
+		if(view.collection){
+			return view.collection.name
+		}else{
+			return view.model.get('name')
+		}
+	}
+
+	exports.Collection = Collection;
+
+	exports.View = View;
+
+	Collection.prototype.__viewconstructor__ = View;
+})
+
+//==========================================
+//index.js
+//加载当前目录下的所有组件
+//==========================================
+define("Core/UIBase/Mixin/index-debug", ["./Collapsable-debug", "./Scrollable-debug", "./InputPin-debug", "./Pin-debug", "./OutputPin-debug"], function(require, exports, module){
+
+	exports.Collapsable = require('./Collapsable-debug');
+	exports.Scrollable 	= require('./Scrollable-debug');
+	exports.InputPin 	= require('./InputPin-debug');
+	exports.OutputPin 	= require('./OutputPin-debug');
+	exports.Pin 		= require('./Pin-debug');
+
+})
+
+
+//=====================
+// Collapsable.js
+// 可以折叠，主要针对LayerView
+//=====================
+define("Core/UIBase/Mixin/Collapsable-debug", [], function(require, exports, module){
+
+	exports.applyTo = function(view){
+
+		var self = this;
+		if( ! view.mixin){
+			view.mixin = [];
+		}
+		if(_.indexOf(view.mixin, self.tag) > 0){
+			return;
+		}
+		view.mixin.push(self.tag);
+
+		// 展开折叠的按钮
+		var $button = $(_.template('<div class="{{className}}"></div>"', {
+				className : self.className
+			}));
+
+		function update(){
+			var $label = view.$el.children('h5');
+			if( ! $label.length){
+				$label = view.$el.children('label');
+			}
+			if($label.css('position') != 'absolute'){
+				$label.css('position', 'relative');
+			}
+			$label.append($button);
+			$label.css('padding-left', '20px');
+
+			$label.bind('click', view.toggle);
+			$button.addClass(view.collapase ? 'fold' : 'unfold');
+
+			var $list = view.$el.children('.lblend-list');
+			$list.css({
+				'overflow-y':'hidden'
+			})
+		}
+
+		// 保存原先的render函数
+		var renderPrev = view.render;
+		_.extend(view, {
+
+			collapse : false,
+
+			render : function(){
+				renderPrev.call(view);
+
+				update();
+
+			},
+
+			toggle : function(){
+				if( view.collapase){
+					view.unfold();
+				}
+				else{
+					view.fold();
+				}
+			},
+
+			fold : function(){
+				this.$el.find('.lblend-list').slideUp();
+				$button.removeClass('unfold');
+				$button.addClass('fold');
+				this.collapase = true;
+			},
+
+			unfold : function(){
+				this.$el.find('.lblend-list').slideDown();
+				$button.addClass('unfold');
+				$button.removeClass('fold');
+				this.collapase = false;
+			},
+
+			back : function(){
+				var $label = view.$el.children('label');
+				$button.remove();
+				view.render = renderPrev;
+				delete view.collapse;
+				delete view.toggle;
+				delete view.fold;
+				delete view.unfold;
+			}
+
+		})
+
+		update();
+
+	}
+
+	exports.className = 'lblend-collapsable';
+
+	exports.tag = 'COLLAPSABLE'
+})
+
+//=====================
+// Scrollable.js
+// 自定义滚动，主要针对LayerView, 滚动的时候LayerView中的label不动,改变list的top值
+// todo 加入滚轮的scroll
+//=====================
+define("Core/UIBase/Mixin/Scrollable-debug", [], function(require, exports, module){
+
+	exports.applyTo = function(view){
+
+		var self = this;
+		if( ! view.mixin){
+			view.mixin = [];
+		}
+		if(_.indexOf(view.mixin, self.tag) > 0){
+			return;
+		}
+		view.mixin.push(self.tag);
+
+		var $scrollbarX = $('<div class="lblend-scrollbar-x"><div class="lblend-scrollbar-thumb"></div></div>'),
+			$scrollbarY = $('<div class="lblend-scrollbar-y"><div class="lblend-scrollbar-thumb"></div></div>'),
+			$scrollbarXThumb = $scrollbarX.find('.lblend-scrollbar-thumb'),
+			$scrollbarYThumb = $scrollbarY.find('.lblend-scrollbar-thumb');
+
+		$scrollbarX.mousewheel(function(e, delta){
+			e.stopPropagation();
+			stepX(delta*20);
+		})
+		
+		$scrollbarY.mousewheel(function(e, delta){
+			e.stopPropagation();
+			stepY(delta*20);
+		})
+		
+		var renderPrev = view.render;
+
+		// listOriginPosition是list原先的位置
+		var $list, $label, listOriginPosition;
+		// clientWidth, clientHeight是显示的大小
+		// overviewWidth, overviewHeight是文档实际的大小
+		var percentX, percentY, clientWidth, clientHeight, overviewWidth, overviewHeight;
+
+		$scrollbarXThumb.draggable({
+			'axis' : 'x',
+			'containment' : 'parent',
+			'drag' : function(e, ui){
+				var left = ui.position.left,
+					thumbWidth = $scrollbarXThumb.width(),
+					barWidth = $scrollbarX.width();
+
+				if( barWidth > thumbWidth){
+					var percent = left / ( barWidth - thumbWidth);
+
+					updateOverviewXPercent(percent);
+				}
+			}
+		});
+		$scrollbarYThumb.draggable({
+			'axis' : 'y',
+			'containment' : 'parent',
+			'drag' : function(e, ui){
+				var top = ui.position.top,
+					thumbHeight = $scrollbarYThumb.height(),
+					barHeight = $scrollbarY.height();
+
+				if( barHeight > thumbHeight){
+					var percent = top / ( barHeight - thumbHeight);
+
+					updateOverviewYPercent(percent);
+				}
+			}
+		});
+
+		var monitorInstance;
+
+		view.on('dispose', function(){
+			if( monitorInstance ){
+				clearInterval(monitorInstance);
+			}
+		})
+		function render(){
+			view.$el.css('overflow', 'hidden');
+
+			$list = view.$el.children('.lblend-list');
+			$label = view.$el.children('h5');
+			
+			listOriginPosition = {
+				top : $list.position().top,
+				left : $list.position().left
+			}
+			//todo 在$el有padding的时候为什么position的left和top还都是0？
+
+			view.$el.append($scrollbarX);
+			view.$el.append($scrollbarY);
+
+			if( monitorInstance ){
+				clearInterval( monitorInstance );
+			}
+			// 有没有别的更好的办法 ?
+			setInterval(function(){	
+				update();
+			}, 500);
+
+			view.$el.mousewheel(function(e, delta){
+				stepY(delta*20);
+			})
+		}
+
+		function update(){
+
+			clientHeight = view.$el.height() - listOriginPosition.top;
+			clientWidth = view.$el.width();
+
+			overviewWidth = $list.width();
+			overviewHeight = $list.height();
+
+			percentX = clientWidth / overviewWidth;
+			percentY = clientHeight / overviewHeight;
+
+			if( percentX >= 1){
+				$scrollbarX.css('display', 'none');
+			}
+			else{
+				$scrollbarX.css('display', 'block');
+				$scrollbarXThumb.width( percentX * view.$el.width() );
+			}
+			if( percentY >= 1){
+				$scrollbarY.css('display', 'none');
+			}else{
+				$scrollbarY.css('display', 'block');
+				$scrollbarYThumb.height( percentY * view.$el.height() );
+			}
+
+		}
+
+		// y方向上滚动一定距离
+		function stepY(step){
+			var top = $list.position().top+step,
+				percent = Math.abs( top/(overviewHeight-clientHeight) );
+
+			if( top >= listOriginPosition.top ){
+				percent = 0;
+			}
+			if( percent >= 1){
+				percent = 1;
+			}
+			updateScrollbarYPercent(percent);
+			updateOverviewYPercent(percent);
+		}
+
+		function stepX(step){
+			var left = $list.position().left+step,
+				percent = Math.abs( left/(overviewWidth-clientWidth) );
+
+			if( left >= listOriginPosition.left){
+				left = listOriginPosition.left;
+				percent = Math.abs( left/(overviewWidth-clientWidth) );
+			}
+			if( percent >= 1){
+				percent = 1;
+			}
+			updateScrollbarXPercent(percent);
+			updateOverviewXPercent(percent);
+		}
+
+		function updateScrollbarYPercent(percent){
+
+			var thumbHeight = $scrollbarYThumb.height(),
+				barHeight = $scrollbarY.height();
+			var thumbTop = (barHeight-thumbHeight)*percent;
+			$scrollbarYThumb.css('top', thumbTop);
+		}
+
+		function updateOverviewYPercent(percent){
+			var offsetTop = (overviewHeight - clientHeight) * percent,
+				parentTop = view.$el.offset().top;
+
+			$list.offset({
+				'top': -offsetTop+listOriginPosition.top+parentTop
+			});
+		}
+
+		function updateScrollbarXPercent(percent){
+
+			var thumbWidth = $scrollbarXThumb.width(),
+				barWidth = $scrollbarX.width();
+			var thumbLeft = (barWidth-thumbWidth)*percent;
+			$scrollbarXThumb.css('left', thumbLeft);
+		}
+
+		function updateOverviewXPercent(percent){
+			var offsetLeft = (overviewWidth - clientWidth) * percent,
+				parentLeft = view.$el.offset().left;
+
+			$list.offset({
+				'left': -offsetLeft+listOriginPosition.left+parentLeft
+			});
+		}
+
+		_.extend(view, {
+
+			render : function(){
+
+				renderPrev.call(this);
+
+				render();
+			},
+
+			back : function(){
+
+			},
+
+			scrollTo : scrollTo
+		})
+
+		render();
+	}
+
+	exports.className = 'lblend-scrollable';
+
+	exports.tag = 'SCROLLABLE';
+
+})
+
+//=================================
+// InputPin.js
+//=================================
+define("Core/UIBase/Mixin/InputPin-debug", ["./Pin-debug"], function(require, exports, module){
+
+	var Pin = require('./Pin-debug');
+
+	_.extend(exports, {
+		className : 'lblend-pin-input',
+		tag : 'INPUTPIN'
+	})
+
+	_.defaults(exports, Pin);
+})
+
+//=================================
+// Pin.js
+// 为一些参数组件中添加一个端口
+//=================================
+define("Core/UIBase/Mixin/Pin-debug", [], function(require, exports, module){
+
+	exports.applyTo = function(view){
+
+		var self = this;
+		// 加上mixin的tag，预防冲突，也方便查找
+		if( ! view.mixin){
+			view.mixin = [];
+		}
+		if(_.indexOf(view.mixin, self.tag) >= 0){
+			return;
+		}
+		view.mixin.push(self.tag);
+		
+		var $pin;
+
+		function init(){
+
+			$pin = $(_.template('<div class="{{className}}"></div>' , {
+				
+				className : self.className
+			}));
+		}
+		// 插入dom
+		function update(){
+
+			if(view.$el.css('position') != 'absolute'){
+
+				view.$el.css('position', 'relative');
+			}
+			
+			view.$el.append($pin);
+		}
+
+		init();
+		update();
+
+		// 保存原先的render函数
+		var renderPrev = view.render;
+		_.extend(view, {
+
+			$pin : $pin,
+			// 每次render 的时候重新插入dom
+			render : function(){
+				// 
+				renderPrev.call(view);
+				
+				update()
+			},
+			// 获取pin的位置
+			getPosition : function(pOffset){
+
+				var	offset = $pin.offset(),
+					pOffset = pOffset || {left : 0, top : 0},
+					width = $pin.width(),
+					height = $pin.height();
+
+				return {
+					left : offset.left - pOffset.left + width/2,
+					top : offset.top - pOffset.top + height/2
+				}
+			},
+			// 移除这个mixin
+			back : function(){
+				delete this.$pin;
+				delete this.getPosition;
+				//删除pin
+				$pin.remove();
+				view.render = renderPrev;
+			}
+		})
+	}
+
+	exports.className = 'lblend-pin';
+
+	exports.tag = 'PIN';
+})
+
+//=================================
+// OutputPin.js
+//=================================
+define("Core/UIBase/Mixin/OutputPin-debug", ["./Pin-debug"], function(require, exports, module){
+
+	var Pin = require('./Pin-debug');
+
+	_.extend(exports, {
+		className : 'lblend-pin-output',
+		tag : 'OUTPUTPIN'
+	})
+
+	_.defaults(exports, Pin);
+})
+
+//==========================================
+//index.js
+//加载当前目录下的所有组件
+//==========================================
+define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Util-debug", "./Assets/FileSystem-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug"], function(require, exports, module){
+
+	exports.Hub 	= require('./Hub-debug');
+	exports.svg 	= require('./svg-debug');
+	exports.Assets 	= require('./Assets/index-debug');
+	exports.UIBase 	= require('./UIBase/index-debug');
+})
