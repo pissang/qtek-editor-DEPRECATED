@@ -2,6 +2,7 @@
 // Color.js
 // use jquery color picker for color picking
 // http://www.eyecon.ro/colorpicker/
+// todo need reconstruct
 //===================================
 define(function(require, exports, module){
 

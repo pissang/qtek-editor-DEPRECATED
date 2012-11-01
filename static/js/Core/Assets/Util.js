@@ -155,6 +155,18 @@ define(function(require, exports, module){
 		return computeBoundingBox(_node);
 	}
 
+	exports.deepCloneNode = function(root){
+		var rootCopy = root.clone();
+
+		_.each(root.children, function(node){
+			rootCopy.add( exports.deepCloneNode(node) );	
+
+		})
+
+		return rootCopy;
+
+	}
+
 	exports.parseFileName = function(fileName){
 		var fileSplited = fileName.split('.'),
 			ext = fileSplited.pop(),

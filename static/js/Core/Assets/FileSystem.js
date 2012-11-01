@@ -28,14 +28,17 @@ define(function(require, exports, module){
 		return root;
 	}
 	File.prototype.setName = function(name, silent){
-		this.name = name;
-	
 		if( ! silent){
+			// trigger before it is really updated
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
+	
 	}
 	File.prototype.attach = function(asset, silent){
 		this.data = asset;
+		asset.host = this;
 
 		if( ! silent){
 			this.getRoot().trigger('attached:asset', this, asset);
@@ -43,6 +46,7 @@ define(function(require, exports, module){
 	}
 	File.prototype.detach = function(silent){
 		this.data = null;
+		asset.host = null;
 
 		if( ! silent){
 			this.getRoot().trigger('detached:asset', this);
@@ -67,12 +71,12 @@ define(function(require, exports, module){
 	_.extend(Folder.prototype, Backbone.Events);
 
 	Folder.prototype.setName = function(name, silent){
-
-		this.name = name;
-
 		if( ! silent){
+			// trigger before it is really updated
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
 	}
 	Folder.prototype.getRoot = function(){
 		var root = this;

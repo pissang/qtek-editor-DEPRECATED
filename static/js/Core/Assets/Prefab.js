@@ -19,7 +19,7 @@ define(function(require, exports, module){
 
 		var name = node && node.name;
 
-		return {
+		var ret = {
 
 			type : 'prefab',
 
@@ -28,6 +28,8 @@ define(function(require, exports, module){
 			data : node || null,
 
 			rawdata : '',
+
+			host : null,
 
 			import : function(json, materialScope, geometryScope){
 				this.data = read( json, materialScope, geometryScope );
@@ -45,13 +47,26 @@ define(function(require, exports, module){
 			},
 
 			getInstance : function(){
-				return this.data;
+				return getInstance(this.data);
 			},
 
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+
+			getConfig : function(){
+				return getConfig( this.data );
+			},
+
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		node && (node.host = ret);
+		return ret;
 	}
 
 	var nodeTypeMap = {
@@ -208,11 +223,11 @@ define(function(require, exports, module){
 						}
 						else if( prop instanceof THREE.Material ){
 
-							item[propName] = prop.path;
+							item[propName] = prop.host.getPath();
 						}
 						else if( prop instanceof THREE.Geometry){
 
-							item[propName] = prop.path;
+							item[propName] = prop.host.getPath();
 						}
 					})
 				}
@@ -225,7 +240,7 @@ define(function(require, exports, module){
 
 	function getInstance( root ){
 
-		var rootCopied = new THREE.SceneUtils.cloneObject(root);
+		var rootCopied = Util.deepCloneNode(root);
 
 		rootCopied.traverse( function(nodeCopied){
 			var name = nodeCopied.name,
@@ -246,7 +261,7 @@ define(function(require, exports, module){
 
 		var nodes = {};
 
-		var rootCopied = new THREE.SceneUtils.cloneObject(root);
+		var rootCopied = Util.deepCloneNode(root);
 
 		rootCopied.traverse( function(nodeCopied){
 			
@@ -262,6 +277,26 @@ define(function(require, exports, module){
 		} );
 
 		return rootCopied;
+	}
+
+	function getConfig(prefab){
+		return {
+			'Prefab Asset' : {
+				type : 'layer',
+				sub : {
+					'name' : {
+						type : 'input',
+						value : prefab.name,
+						onchange : function(value){
+							prefab.name = value;
+							prefab.host.name = value;
+							prefab.host.host.setName(value);
+						}
+					}
+				}
+			}
+		}
+
 	}
 
 	exports.create = create;

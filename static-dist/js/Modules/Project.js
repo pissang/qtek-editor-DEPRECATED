@@ -56,7 +56,7 @@ define(function(require, exports, module){
 
 		hub.on('upload:file', function(file){
 			
-			fileHandleDispatch( file );
+			fileHandleDispatch( file, FS.root.find('project') );
 
 			hub.trigger('uploaded:file');
 		});
@@ -111,6 +111,10 @@ define(function(require, exports, module){
 			
 			treeView.remove(node.getPath());
 		})
+		FS.root.on('updated:name', function(node, name){
+
+			treeView.find(node.getPath()).setName(name, true);
+		})
 		treeView.on('added:node', function(parent, node){
 
 
@@ -124,11 +128,18 @@ define(function(require, exports, module){
 		treeView.on('removed:node', function(parent, node){
 
 		})
+		treeView.on('click:node', function(node){
+			var fsNode = FS.root.find( node.getPath() );
+			// inspect asset properties
+			if(fsNode.data){
+				hub.trigger('inspect:object', fsNode.data.getConfig() );
+			}
+		})
 	}
 
 	// use FileReader api
 	// http://www.html5rocks.com/en/tutorials/file/dndfiles/
-	function fileHandleDispatch(file){
+	function fileHandleDispatch(file, parent){
 
 		var ext = Assets.Util.parseFileName(file.name).ext.toLowerCase();
 		// zip asset file
@@ -136,33 +147,23 @@ define(function(require, exports, module){
 			case 'zip':
 				break;
 			case 'bin':
-				require('../Core/Assets/Importer/Binary').importFromFile( file, FS.root.find('project') );
+				require('../Core/Assets/Importer/Binary').importFromFile( file, parent );
 				break;
 			case 'js':
-				require('../Core/Assets/Importer/JSON').importFromFile( file, FS.root.find('project') );
+				require('../Core/Assets/Importer/JSON').importFromFile( file, parent );
 				break;
 			case 'dae':
-				require('../Core/Assets/Importer/Collada').importFromFile( file, FS.root.find('project') );
+				require('../Core/Assets/Importer/Collada').importFromFile( file, parent );
 				break;
 			case 'png':
 			case 'jpg':
 			case 'jpeg':
 			case 'gif':
 			case 'bmp':
-				var reader = new FileReader();
-				reader.onload = function(evt){
-					if(evt.target.readyState == FileReader.DONE){
-						var image = new Image();
-						image.src = evt.target.result;
-						var texture = new THREE.Texture(image);
-						texture.name = file.name;
-						
-						var texAsset = Assets.Texture.create(texture);
-						FS.root.find('project').createFile(texAsset.name, texAsset);
-					}
-				}
-				reader.readAsDataURL(file);
+				require('../Core/Assets/Importer/Image').importFromFile( file, parent );
 				break;
+			case 'dds': // compressed texture
+				require('../Core/Assets/Importer/DDS').importFromFile( file, parent );
 		}
 	}
 

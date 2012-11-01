@@ -19,11 +19,11 @@ define(function(require, exports, module){
 		_.each(json.materials, function(mat){
 			var material = createMaterial(mat, function(name){
 				
-				var asset = folder.find( name )
+				var file = folder.find( name )
 				if( ! asset ){
-					asset = folder.find( 'textures/'+name);
+					file = folder.find( 'textures/'+name);
 				}
-				return asset;
+				return file.data.getInstance();
 			})
 			materialList.push( material );
 			//create asset;

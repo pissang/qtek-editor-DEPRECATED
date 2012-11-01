@@ -1,44 +1,60 @@
 /*UI组件的样式*/
 
 @charset 'utf-8';
-/*Float组件*/
 .lblend-float{
 	background-color:#aaaaaa;
 	text-align:center;
+	border-radius:5px;
 	margin :5px;
 	line-height:20px;
 	cursor: pointer;
+	box-shadow : 1px 1px 3px black inset;
 	position:relative;
-	border-radius: 5px;
 }
 
 .lblend-float .lblend-percent{
+	-webkit-animation: progress-bar-stripes 2s linear infinite;
+	/*-webkit-transition: width 0.3s linear;*/
+	background-color:#01273A;
+	background-image:-webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
+	background-size: 40px 40px;
 	position: absolute;
 	left:0px;
 	top:0px;
 	bottom:0px;
 	z-index:-1px;
-	background-color: #888;
-	border-radius: 5px;
+	border-radius:5px;
+	opacity:0.3;
+	box-shadow: 1px 1px 3px black;
+
 }
+/*from bootstrap*/
+@-webkit-keyframes progress-bar-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 40px 0;
+  }
+ }
 
 .lblend-float label{
 	min-width:70px;
 	float:left;
 	font-size:12px;
-	color:white;
+	color:#CACACA;
 	position:relative;
 	font-family: Arial;
 	font-weight: bold;
 }
 
 .lblend-float span{
-	color:white;
+	color:black;
 	position:relative;
 }
 
 .lblend-float input{
-	text-align : center;
+	text-align : left;
 	background:none;
 	border :none;
 	position: relative;
@@ -49,31 +65,22 @@
 	margin : 2px 5px;
 	overflow: hidden;
 }
-.lblend-vector .lblend-vector-label{
-	margin:5px;
-	display: block;
-	color:rgb(202, 202, 202);
+.lblend-vector label{
+	color:#CACACA;
 }
-.lblend-vector .lblend-float{
+
+.lblend-vector .lblend-list .lblend-float{
 	border-radius : 0px;
 	margin : 0px;
+	color:black;
 }
-.lblend-vector .lblend-float .lblend-percent{
-	border-radius: 0px;
-}
-.lblend-vector .lblend-float:first-child{
+.lblend-vector .lblend-list .lblend-float:first-child{
 	border-radius : 5px 5px 0px 0px;
 	margin : 0px;
 }
-.lblend-vector .lblend-float:first-child .lblend-percent{
-	border-radius: 5px 0px 0px 0px;
-}
-.lblend-vector .lblend-float:last-child{
+.lblend-vector .lblend-list .lblend-float:last-child{
 	border-radius : 0px 0px 5px 5px;
 	margin : 0px;
-}
-.lblend-vector .lblend-float:last-child .lblend-percent{
-	border-radius: 0px 0px 0px 5px;
 }
 
 /*Label组件*/
@@ -91,6 +98,14 @@
 }
 .lblend-checkbox label{
 	margin-left: 10px;
+}
+/* input 组件*/
+.lblend-input-label{
+	color:#CACACA;
+}
+/* image 组件*/
+.lblend-image-label{
+	color:#CACACA;
 }
 
 /*Select组件*/
@@ -115,8 +130,9 @@
 	padding: 1px 5px;
 	margin-left: 10px;
 	text-align: center;
-	border-radius: 1px;
+	border-radius: 3px;
 	cursor: default;
+
 }
 .lblend-select-dropdown-list{
 	position: absolute;
@@ -303,7 +319,7 @@
 	line-height: 18px;
 }
 .lblend-tree li.active>.lblend-tree-title{
-	background-color: #1490D6;
+	background-color:#999;
 	box-shadow: 0px 0px 1px black;
 	border-radius: 5px;
 }
@@ -337,7 +353,6 @@
 	height:10px;
 	border-radius:5px;
 	box-shadow:inset 1px 1px 3px black;
-	background-color:yellow;
 
 }
 /*inputpin 组件在不同的参数组件中的位置*/

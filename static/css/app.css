@@ -62,6 +62,12 @@ h1{
 .region{
 	height:100%;
 }
+.region.focus{
+	border:1px solid #FF8F00;
+}
+.region.focus .lblend-tree li.active>.lblend-tree-title{
+	background-color: #1490D6;
+}
 /*******Panels************/
 .lblend-panel{
 	background-color: #404040;
@@ -184,7 +190,7 @@ h1{
 	min-width: 390px;
 }
 #Inspector .lblend-layer{
-	margin-bottom: 4px;
+	margin-top: 4px;
 	background-color: #2E2E2E;
 	border-radius: 5px;
 	padding-bottom: 10px;
@@ -204,6 +210,10 @@ h1{
 #Inspector .lblend-checkbox,
 #Inspector .lblend-select,
 #Inspector .lblend-texture,
+#Inspector .lblend-input,
+#Inspector .lblend-image,
+#inspector .lblend-float,
+#Inspector .lblend-vector,
 #Inspector .lblend-color{
 	border-bottom: 1px solid #242323;
 	border-top: 1px solid #3A3A3A;
@@ -212,22 +222,25 @@ h1{
 	box-sizing:border-box;
 }
 
-/****object的名字***********/
-#Inspector .lblend-layer.inspector-name{
-	height:35px;
-	margin-bottom: 0px;
-	background: none;
-	box-shadow: none;
-	padding-right: 20px;
-	box-sizing:border-box;
-}
-.inspector-name input{
+#Inspector .lblend-input input{
+
 	line-height: 20px;
-	width:100%;
 	margin-top: 5px;
 	padding-left: 10px;
 	box-shadow: 1px 1px 5px black inset;
 	border-radius: 4px;
+}
+
+/* texture asset properties*/
+.inspector-texture .lblend-image{
+	border: none;
+}
+.inspector-texture .lblend-image-label{
+	display: none;
+}
+.inspector-texture .lblend-image img{
+	width:200px;
+	margin-left: 20px;
 }
 /****transform的属性编辑****/
 .inspector-transform >.lblend-list{
@@ -544,7 +557,7 @@ li.asset-item .thumb{
 	line-height: 25px;
 }
 #Menu .menu ul li a span.icon-menu-parent{
-	background-image: url(img/icons/arrow-right1.png);
+	background-image: url(../img/icons/arrow-right1.png);
 	float:right;
 	margin-right: 5px;
 	margin-top: 4px;

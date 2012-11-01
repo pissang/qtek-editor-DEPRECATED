@@ -796,6 +796,10 @@ THREE.ColladaLoader = function () {
 
 	var flip_uv = true;
 	var preferredShading = THREE.SmoothShading;
+	
+	// added by pissang bm2736892@gmail.com
+	// to enable texture lookup in project
+	var textureScope;
 
 	var options = {
 		// Force Geometry to always be centered at the local origin of the
@@ -888,11 +892,18 @@ THREE.ColladaLoader = function () {
 		callBack = callBack || readyCallbackFunc;
 
 		if ( url !== undefined ) {
+			// added by pissang bm2736892@gmail.com
+			// to enable texture lookup in project
+			if( _.isFunction(url) ){
+				textureScope = url;
+			}
+			else if( _.isString(url) ){
+				var parts = url.split( '/' );
+				parts.pop();
+				baseUrl = ( parts.length < 1 ? '.' : parts.join( '/' ) ) + '/';
 
-			var parts = url.split( '/' );
-			parts.pop();
-			baseUrl = ( parts.length < 1 ? '.' : parts.join( '/' ) ) + '/';
-
+			}
+			
 		}
 
 		parseAsset();
@@ -1545,6 +1556,8 @@ THREE.ColladaLoader = function () {
 				var geom = geometry.mesh.geometry3js;
 
 				if ( num_materials > 1 ) {
+					
+					console.warn('this dae use face material');
 
 					material = new THREE.MeshFaceMaterial();
 					geom.materials = used_materials_array;
@@ -3877,13 +3890,22 @@ THREE.ColladaLoader = function () {
 
 									if ( image ) {
 
-										var texture = THREE.ImageUtils.loadTexture(baseUrl + image.init_from);
-										texture.wrapS = cot.texOpts.wrapU ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-										texture.wrapT = cot.texOpts.wrapV ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
-										texture.offset.x = cot.texOpts.offsetU;
-										texture.offset.y = cot.texOpts.offsetV;
-										texture.repeat.x = cot.texOpts.repeatU;
-										texture.repeat.y = cot.texOpts.repeatV;
+										// added by pissang bm2736892@gmail.com
+										// to enable texture lookup in project
+										if( textureScope ){
+											var texture = textureScope( image.init_from );
+										}
+										if( ! texture){
+											var texture = THREE.ImageUtils.loadTexture(baseUrl + image.init_from);
+											texture.wrapS = cot.texOpts.wrapU ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+											texture.wrapT = cot.texOpts.wrapV ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping;
+											texture.offset.x = cot.texOpts.offsetU;
+											texture.offset.y = cot.texOpts.offsetV;
+											texture.repeat.x = cot.texOpts.repeatU;
+											texture.repeat.y = cot.texOpts.repeatV;
+										}
+
+										
 										props['map'] = texture;
 
 										// Texture with baked lighting?
@@ -5254,8 +5276,11 @@ THREE.ColladaLoader = function () {
 		setPreferredShading: setPreferredShading,
 		applySkin: applySkin,
 		geometries : geometries,
-		options: options
+		options: options,
 
+		setTextureScope : function(func){
+			textureScope = func
+		}
 	};
 
 };

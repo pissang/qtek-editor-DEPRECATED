@@ -12,6 +12,12 @@ define(function(require){
 
 	var $regions = $Main.find('.region');
 
+	$regions.focus(function(){
+		$(this).addClass('focus');
+	}).blur(function(){
+		$(this).removeClass('focus');
+	})
+
 	// init layout and modules
 	$regions.each(function(){
 

@@ -16,7 +16,7 @@ define(function(require, exports, module){
 
 		var name = texture && texture.name;
 
-		return {
+		var ret = {
 
 			type : 'texturecube',
 
@@ -24,11 +24,12 @@ define(function(require, exports, module){
 
 			data : texture || null,
 
-			rawdata : '',
+			host : null,
 
 			import : function(json){
 				this.data = read(json);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -41,12 +42,21 @@ define(function(require, exports, module){
 				return toJSON( this.data );
 			},
 			getInstance : function(){
-				return this.data;
+				return getInstance(this.data);
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		texture && (texture.host = ret);
+
+		return ret;
 	}
 
 	function read(json){
@@ -126,9 +136,9 @@ define(function(require, exports, module){
 		return json;
 	}
 
-	function getInstance(){
-		this.data.needsUpdate = true;
-		return this.data;
+	function getInstance( texture ){
+		texture.needsUpdate = true;
+		return texture;
 	}
 
 	function getCopy(){

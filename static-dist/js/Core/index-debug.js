@@ -52,7 +52,7 @@ define("Core/svg-debug", [], function(require, exports, module){
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/Assets/index-debug", ["./Geometry-debug", "./Material-debug", "./Prefab-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug", "./FileSystem-debug", "./Importer/index-debug", "./Importer/Binary-debug", "./Importer/Collada-debug", "./Importer/JSON-debug", "./Importer/Zip-debug"], function(require, exports, module){
+define("Core/Assets/index-debug", ["./Geometry-debug", "./Material-debug", "./Prefab-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug", "./FileSystem-debug", "./Importer/index-debug", "./Importer/Binary-debug", "./Importer/Collada-debug", "./Importer/JSON-debug", "./Importer/Zip-debug", "./Importer/Image-debug", "./Importer/DDS-debug"], function(require, exports, module){
 
 	exports.Geometry 	= require('./Geometry-debug');
 	exports.Material 	= require('./Material-debug');
@@ -81,9 +81,9 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 
 	function create( geo ){
 
-		var name = geo && geo.name
+		var name = geo && geo.name;
 
-		return {
+		var ret = {
 
 			type : 'geometry',
 
@@ -91,11 +91,13 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 
 			data : geo || null,
 
-			rawdata : '',
+			host : null,
+
 			// import from json
 			import : function(json){
 				this.data = read(json);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -113,8 +115,17 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		geo && (geo.host = ret);
+
+		return ret;
 	}
 
 	function read(json){
@@ -368,7 +379,7 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 
 		var name = mat && mat.name;
 		
-		return {
+		var ret = {
 
 			type : 'material',
 
@@ -376,11 +387,13 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 
 			data : mat || null,
 
-			rawdata : '',
+			host : null,
+
 			// textureScope is a function to query a texture
 			import : function(json, textureScope){
 				this.data = read(json, textureScope);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -397,10 +410,28 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getConfig : function(){
+				return getConfig( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		mat && (mat.host = ret);
+
+		return ret;
 	}
 
+	function parseShaders(){
+
+	}
+
+	// we drop all the material types in THREE.js and leave a ShaderMaterial
+	// to manage shaders, to keep material management more clearly;
 	function read(m, textureScope){
 
 		if( material ){
@@ -550,77 +581,7 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 			json['fragmentShader'] = material.fragmentShader;
 			json['type'] = 'shader';
 		}
-		else{
-			if( material.map && ! material.map.__system__){
-
-				json['map'] = textureUriBase + material.map.name;
-			}
-			if( material.lightMap ){
-
-				json['lightMap'] = textureUriBase + material.lightMap.name;
-			}
-			if( material.specularMap ){
-
-				json['specularMap'] = textureUriBase + material.specularMap.name;
-			}
-			if( material.envMap ){
-
-				json['envMap'] = textureUriBase + material.envMap.name;
-			}
-
-			_.extend( json, {
-				'opacity' : material.opacity,
-				'transparent' : material.transparent,
-				'color' : material.color.getHex(),
-				'combine' :  material.combine,
-				'reflectivity' : material.reflectivity,
-				'refractionRatio' : material.refractionRatio,
-				'shading' : material.shading,
-				'wireframe' : material.wireframe
-			})
-
-			if( material instanceof THREE.MeshBasicMaterial ){
-				json['type'] = 'basic';
-			}
-			else if( material instanceof THREE.MeshLambertMaterial ){
-
-				_.extend(json, {
-					'type' : 'lambert',
-					'ambient' : material.ambient.getHex(),
-					'emissive' : material.emissive.getHex()
-				})
-			}
-			else if( material instanceof THREE.MeshPhongMaterial ){
-
-				_.extend(json, {
-
-					'type' : 'phong',
-					'ambient' : material.ambient.getHex(),
-					'emissive' : material.emissive.getHex(),
-
-					'specular' : material.specular,
-					'shininess' : material.shininess,
-					'metal' : material.metal,
-					'perPixel' : material.perPixel,
-
-				})
-				if( material.bumpMap ){
-					_.extend( json, {
-
-						'bumpMap' : textureUriBase + material.bumpMap.name,
-						'bumpScale' : material.bumpScale
-					})
-				}
-				if( material.normalMap ){
-
-					_.extend( json, {
-
-						'normalMap' : textureUriBase + material.normalMap.name,
-						'normalScale' : material.normalScale
-					})
-				}
-			}
-		}
+		
 		return json;
 	}
 
@@ -668,6 +629,28 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 		return clonedMaterial;
 	}
 
+	function getConfig( material ){
+		
+		var props = {
+			'name' : {
+				type : 'input',
+				value : material.name,
+				onchange : function(value){
+					material.name = value;
+					material.host.name = value;
+					material.host.host.setName(value);
+				}
+			},
+		}
+
+		return {
+			'Material Asset' : {
+				type : 'layer',
+				sub : props
+			}
+		}
+	}
+
 	exports.create = create;
 	// static functions
 	exports.export = toJSON;
@@ -696,7 +679,7 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 
 		var name = node && node.name;
 
-		return {
+		var ret = {
 
 			type : 'prefab',
 
@@ -705,6 +688,8 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 			data : node || null,
 
 			rawdata : '',
+
+			host : null,
 
 			import : function(json, materialScope, geometryScope){
 				this.data = read( json, materialScope, geometryScope );
@@ -722,13 +707,26 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 			},
 
 			getInstance : function(){
-				return this.data;
+				return getInstance(this.data);
 			},
 
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+
+			getConfig : function(){
+				return getConfig( this.data );
+			},
+
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		node && (node.host = ret);
+		return ret;
 	}
 
 	var nodeTypeMap = {
@@ -885,11 +883,11 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 						}
 						else if( prop instanceof THREE.Material ){
 
-							item[propName] = prop.path;
+							item[propName] = prop.host.getPath();
 						}
 						else if( prop instanceof THREE.Geometry){
 
-							item[propName] = prop.path;
+							item[propName] = prop.host.getPath();
 						}
 					})
 				}
@@ -902,7 +900,7 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 
 	function getInstance( root ){
 
-		var rootCopied = new THREE.SceneUtils.cloneObject(root);
+		var rootCopied = Util.deepCloneNode(root);
 
 		rootCopied.traverse( function(nodeCopied){
 			var name = nodeCopied.name,
@@ -923,7 +921,7 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 
 		var nodes = {};
 
-		var rootCopied = new THREE.SceneUtils.cloneObject(root);
+		var rootCopied = Util.deepCloneNode(root);
 
 		rootCopied.traverse( function(nodeCopied){
 			
@@ -939,6 +937,26 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 		} );
 
 		return rootCopied;
+	}
+
+	function getConfig(prefab){
+		return {
+			'Prefab Asset' : {
+				type : 'layer',
+				sub : {
+					'name' : {
+						type : 'input',
+						value : prefab.name,
+						onchange : function(value){
+							prefab.name = value;
+							prefab.host.name = value;
+							prefab.host.host.setName(value);
+						}
+					}
+				}
+			}
+		}
+
 	}
 
 	exports.create = create;
@@ -965,7 +983,7 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 
 		var name = texture && texture.name;
 
-		return {
+		var ret = {
 
 			type : 'texture',
 
@@ -973,11 +991,12 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 
 			data : texture || null,
 
-			rawdata : '',
+			host : null,
 
 			import : function(json){
 				this.data = read(json);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -990,12 +1009,25 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 				return toJSON( this.data );
 			},
 			getInstance : function(){
-				return this.data;
+				return getInstance(this.data);
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			// config for inspector
+			getConfig : function(){
+				return getConfig(this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		texture && (texture.host = ret);
+
+		return ret;
 	}
 
 	function read(json){
@@ -1061,14 +1093,138 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 		return json;
 	}
 
-	function getInstance(){
-		this.data.needsUpdate = true;
-		return this.data;
+	function getInstance( texture ){
+		texture.needsUpdate = true;
+		return texture;
 	}
-
+	
 	function getCopy( texture ){
 		return texture.clone();
 	}
+
+	function getConfig( texture ){
+		return {
+			'Texture Asset' : {
+				type : 'layer',
+				sub : {
+					'name' : {
+						type : 'input',
+						value : texture.name,
+						onchange : function(value){
+							texture.name = value;
+							// set asset name
+							texture.host.name = value;
+							// set file name
+							texture.host.host.setName(value);
+						}
+					},
+					'image' : {
+						type : 'image',
+						value : texture.image,
+						onchange : function(value){
+							// image must be loaded before calling this onchange method
+							texture.image = value;
+							texture.image.needsUpdate = true;
+						}
+					},
+					'mapping' : {
+						type : 'select',
+						value : texture.mapping,
+						options : [{
+							value : 1000,
+							description : 'Repeat'
+						}, {
+							value : 1001,
+							description : 'Clamp to edge'
+						}, {
+							value : 1002,
+							description : 'Mirror'
+						}],
+						onchange : function(value){
+							texture.mapping = value;
+							texture.needsUpdate = true;
+						}
+					},
+					'magFilter' : {
+						type : 'select',
+						value : texture.magFilter,
+						options : filterOptions,
+						onchange : function(value){
+							texture.magFilter = value;
+						}
+					},
+					'minFilter' : {
+						type : 'select',
+						value : texture.minFilter,
+						options : filterOptions,
+						onchange : function(){
+							texture.minFilter = value;
+						}
+					},
+					'anisotropy' : {
+						type : 'boolean',
+						value : texture.anisotropy,
+						onchange : function(value){
+							texture.anisotropy = value;
+						}
+					},
+					// need to move the offset and repeat to material
+					'offset' : {
+						type : 'vector',
+						value : {
+							x : texture.offset.x,
+							y : texture.offset.y
+						},
+						min : -100,
+						max : 100,
+						step : 0.01,
+						onchange : function(key, value){
+							texture.offset[key] = value;
+						}
+					},
+					'repeat' : {
+						type : 'vector',
+						value : {
+							x : texture.repeat.x,
+							y : texture.repeat.y
+						},
+						min : 0,
+						max : 1000,
+						step : 0.1,
+						onchange : function(key, value){
+							texture.repeat[key] = value;
+						}
+					}
+				}
+			}
+			
+		}
+	}
+
+	var filterOptions = [{
+		value : 1003,
+		description : 'Nearst'
+	},
+	{
+		value : 1004,
+		description : 'Nearest MipMapNearest'
+	},
+	{
+		value : 1005,
+		description : 'Nearest MipMapLinear'
+	},
+	{
+		value : 1006,
+		description : 'Linear'
+	},
+	{
+		value : 1007,
+		description : 'Linear MipMapNearest'
+	},
+	{
+		value : 1008,
+		description : 'Linear MipMapLinear'
+	}]
 
 	exports.create = create;
 	// static functions
@@ -1095,7 +1251,7 @@ define("Core/Assets/TextureCube-debug", [], function(require, exports, module){
 
 		var name = texture && texture.name;
 
-		return {
+		var ret = {
 
 			type : 'texturecube',
 
@@ -1103,11 +1259,12 @@ define("Core/Assets/TextureCube-debug", [], function(require, exports, module){
 
 			data : texture || null,
 
-			rawdata : '',
+			host : null,
 
 			import : function(json){
 				this.data = read(json);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -1120,12 +1277,21 @@ define("Core/Assets/TextureCube-debug", [], function(require, exports, module){
 				return toJSON( this.data );
 			},
 			getInstance : function(){
-				return this.data;
+				return getInstance(this.data);
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		texture && (texture.host = ret);
+
+		return ret;
 	}
 
 	function read(json){
@@ -1205,9 +1371,9 @@ define("Core/Assets/TextureCube-debug", [], function(require, exports, module){
 		return json;
 	}
 
-	function getInstance(){
-		this.data.needsUpdate = true;
-		return this.data;
+	function getInstance( texture ){
+		texture.needsUpdate = true;
+		return texture;
 	}
 
 	function getCopy(){
@@ -1378,6 +1544,18 @@ define("Core/Assets/Util-debug", [], function(require, exports, module){
 		return computeBoundingBox(_node);
 	}
 
+	exports.deepCloneNode = function(root){
+		var rootCopy = root.clone();
+
+		_.each(root.children, function(node){
+			rootCopy.add( exports.deepCloneNode(node) );	
+
+		})
+
+		return rootCopy;
+
+	}
+
 	exports.parseFileName = function(fileName){
 		var fileSplited = fileName.split('.'),
 			ext = fileSplited.pop(),
@@ -1465,14 +1643,17 @@ define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
 		return root;
 	}
 	File.prototype.setName = function(name, silent){
-		this.name = name;
-	
 		if( ! silent){
+			// trigger before it is really updated
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
+	
 	}
 	File.prototype.attach = function(asset, silent){
 		this.data = asset;
+		asset.host = this;
 
 		if( ! silent){
 			this.getRoot().trigger('attached:asset', this, asset);
@@ -1480,6 +1661,7 @@ define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
 	}
 	File.prototype.detach = function(silent){
 		this.data = null;
+		asset.host = null;
 
 		if( ! silent){
 			this.getRoot().trigger('detached:asset', this);
@@ -1504,12 +1686,12 @@ define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
 	_.extend(Folder.prototype, Backbone.Events);
 
 	Folder.prototype.setName = function(name, silent){
-
-		this.name = name;
-
 		if( ! silent){
+			// trigger before it is really updated
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
 	}
 	Folder.prototype.getRoot = function(){
 		var root = this;
@@ -1651,12 +1833,14 @@ define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/Assets/Importer/index-debug", ["./Binary-debug", "../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug", "./Collada-debug", "./JSON-debug", "./Zip-debug"], function(require, exports, module){
+define("Core/Assets/Importer/index-debug", ["./Binary-debug", "../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug", "./Collada-debug", "./JSON-debug", "./Zip-debug", "./Image-debug", "./DDS-debug"], function(require, exports, module){
 
-	exports.Binary = require('./Binary-debug');
-	exports.Collada 	= require('./Collada-debug');
+	exports.Binary 	= require('./Binary-debug');
+	exports.Collada = require('./Collada-debug');
 	exports.JSON 	= require('./JSON-debug');
 	exports.Zip 	= require('./Zip-debug');
+	exports.Image = require('./Image-debug');
+	exports.DDS = require('./DDS-debug');
 
 })
 
@@ -1735,16 +1919,50 @@ define("Core/Assets/Importer/Collada-debug", ["../Geometry-debug", "../Prefab-de
 
 	exports.import = function(name, data, folder){
 
-		colladaLoader.parse(data, function(result){
+		var textureScope = function(init_from){
+			var file = folder.find(init_from);
+			if( ! file){
+				file = folder.find('textures/'+init_from);
+			}
+			if( !file){
+				// remove the base path and get file name;
+				init_from = init_from.split('/').pop();
+				file = folder.find(init_from);
+			}
+			if( ! file){
+				file = folder.find('textures/'+init_from);
+			}
+			if( file){
+				return file.data.getInstance();
+			}
+		}
 
-			var node = new THREE.Object3D();
+		colladaLoader.parse(data, function(result){
+			
+			var root = new THREE.Object3D();
 			_.each(result.scene.children, function(child){
-				node.add(child);
+				root.add(child);
 			})
-			node.name = name;
-			var prefab = PrefabAsset.create( node );
+			root.name = name;
+			// get all material instances;
+			var materials = {};
+			root.traverse(function(_node){
+				if(_node.material){
+					materials[_node.material.name] = _node.material;
+				}
+			})
+
+			// create material asset file
+			var matFolder = folder.createFolder('materials');
+			_.each(materials, function(material){
+				var matAsset = MaterialAsset.create( material );
+				var file = matFolder.createFile(matAsset.name, matAsset);
+			})
+			// create prefab asset file
+			var prefab = PrefabAsset.create( root );
 			var file = folder.createFile( prefab.name, prefab );
-		})
+		
+		}, textureScope);
 	}
 
 	exports.importFromFile = function(file, folder, callback){
@@ -1793,11 +2011,11 @@ define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug
 		_.each(json.materials, function(mat){
 			var material = createMaterial(mat, function(name){
 				
-				var asset = folder.find( name )
+				var file = folder.find( name )
 				if( ! asset ){
-					asset = folder.find( 'textures/'+name);
+					file = folder.find( 'textures/'+name);
 				}
-				return asset;
+				return file.data.getInstance();
 			})
 			materialList.push( material );
 			//create asset;
@@ -1986,15 +2204,113 @@ define("Core/Assets/Importer/Zip-debug", ["../Geometry-debug", "../Prefab-debug"
 
 })
 
+//=========================
+//	Image.js
+//	import from image files
+//==========================
+
+define("Core/Assets/Importer/Image-debug", ["../Texture-debug"], function(require, exports, module){
+
+	var TextureAsset = require('../Texture-debug');
+
+	exports.import = function(name, data, folder){
+
+		var image = new Image;
+		image.src = data;
+
+		var texture = new THREE.Texture(image);
+		texture.name = name;
+		
+		var texFolder = folder.createFolder('textures');
+		var texAsset = TextureAsset.create(texture);
+
+		texFolder.createFile(texAsset.name, texAsset);
+
+		return texAsset;
+	}
+
+	exports.importFromFile = function(file, folder, callback){
+
+		var reader = new FileReader();
+		reader.onload = function(evt){
+
+			if( evt.target.readyState == FileReader.DONE ){
+
+				var res = exports.import( file.name, evt.target.result, folder);
+				callback && callback(res);
+			}
+		}
+		reader.readAsDataURL( file );
+	}
+
+	exports.importFromURL = function(url, folder, callback){
+		
+	}
+})
+
+//=========================
+//	DDS.js
+//	import from dds format files
+//==========================
+
+define("Core/Assets/Importer/DDS-debug", ["../Texture-debug"], function(require, exports, module){
+
+	var TextureAsset = require('../Texture-debug');
+
+	exports.import = function(name, data, folder){
+
+		var dds = THREE.ImageUtils.parseDDS( data, true);
+		
+		// almost from THREE.ImageUtils.loadCompressedTexture
+		var texture = new THREE.CompressedTexture();
+
+		texture.name = name;
+		texture.format = dds.format;
+		texture.mipmaps = dds.mipmaps;
+		// image.width, image.height is useless for webgl renderer
+		// renderer will use mimaps instead of image property
+		texture.image.width = dds.width;
+		texture.image.height = dds.height;
+		// tell renderer not to generate mip maps
+		texture.generateMipmaps = false;
+
+		var texFolder = folder.createFolder('textures');
+		var texAsset = TextureAsset.create(texture);
+
+		texFolder.createFile(texAsset.name, texAsset);
+
+		return texAsset;
+	}
+
+	exports.importFromFile = function(file, folder, callback){
+
+		var reader = new FileReader();
+		reader.onload = function(evt){
+
+			if( evt.target.readyState == FileReader.DONE ){
+
+				var res = exports.import( file.name, evt.target.result, folder);
+				callback && callback(res);
+			}
+		}
+		reader.readAsArrayBuffer( file );
+	}
+
+	exports.importFromURL = function(url, folder, callback){
+		
+	}
+})
+
 //==========================================
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/UIBase/index-debug", ["./Button-debug", "./Checkbox-debug", "./Float-debug", "./Input-debug", "./Label-debug", "./Color-debug", "./Layer-debug", "./Link-debug", "./Node-debug", "./Panel-debug", "./Select-debug", "./Texture-debug", "./Tree-debug", "./Vector-debug", "./Video-debug", "./Tab-debug", "./Mixin/index-debug", "./Mixin/Collapsable-debug", "./Mixin/Scrollable-debug", "./Mixin/InputPin-debug", "./Mixin/Pin-debug", "./Mixin/OutputPin-debug"], function(require, exports, module){
+define("Core/UIBase/index-debug", ["./Button-debug", "./Checkbox-debug", "./Float-debug", "./Image-debug", "./Input-debug", "./Label-debug", "./Color-debug", "./Layer-debug", "./Link-debug", "./Node-debug", "./Panel-debug", "./Select-debug", "./Texture-debug", "./Tree-debug", "./Vector-debug", "./Video-debug", "./Tab-debug", "./Mixin/index-debug", "./Mixin/Collapsable-debug", "./Mixin/Scrollable-debug", "./Mixin/InputPin-debug", "./Mixin/Pin-debug", "./Mixin/OutputPin-debug"], function(require, exports, module){
 
 	exports.Button 		= require('./Button-debug'); 
 	exports.Checkbox 	= require('./Checkbox-debug');
 	exports.Float 		= require('./Float-debug');
+	exports.Image 		= require('./Image-debug');
 	exports.Input 		= require('./Input-debug');
 	exports.Label 		= require('./Label-debug');
 	exports.Color 		= require('./Color-debug');
@@ -2306,6 +2622,67 @@ define("Core/UIBase/Float-debug", [], function(require, exports, module){
 	Model.prototype.__viewconstructor__ = View;
 })
 
+//=======================================
+//	Image.js
+//	
+//=======================================
+
+define("Core/UIBase/Image-debug", [], function(require, exports, module){
+
+	var Model = Backbone.Model.extend({
+		defaults : {
+			name : '',
+			filename : '',	//文件位置
+			src : null	//HTMLImageElement
+		}
+	});
+
+	var View = Backbone.View.extend({
+
+		type : 'IMAGE',
+
+		tagName : 'div',
+
+		className : 'lblend-image',
+
+		template : '<label class="lblend-image-label" data-html="model.name"></label>\
+					<span class="lblend-image-filename" data-html="model.filename"></span>\
+					<div class="lblend-image-wrapper">\
+						<img data-src="model.src" />\
+					</div>',
+
+		model : null,
+
+		initialize : function(){
+
+			if( ! this.model){
+				this.model = new Model;
+			}
+
+			this.render();
+
+			this.on('dispose', function(){
+			})
+		},
+
+		render : function(){
+
+			this.$el.html( this.template );
+
+			rivets.bind(this.$el, {model:this.model});
+			
+		}
+
+
+	})
+
+	exports.View = View;
+
+	exports.Model = Model;
+
+	Model.prototype.__viewconstructor__ = View;
+})
+
 //=================
 // Input.js
 // 
@@ -2412,6 +2789,7 @@ define("Core/UIBase/Label-debug", [], function(require, exports, module){
 // Color.js
 // use jquery color picker for color picking
 // http://www.eyecon.ro/colorpicker/
+// todo need reconstruct
 //===================================
 define("Core/UIBase/Color-debug", [], function(require, exports, module){
 
@@ -2974,17 +3352,18 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',	//这里name对应option的value
-			value : '',
+			name : '',	
+			value : '', //这里name对应option的value
+			html : '',	// 每个option的html
 			selected : false
 		}
 	});
 
 	var Collection = Backbone.Collection.extend({
 		
-		select : function(name){
+		select : function(value){
 			this.forEach(function(model){
-				if(model.get('name') == name){
+				if(model.get('value') == value){
 					model.set('selected', true);
 				}else{
 					model.set('selected', false);
@@ -3041,7 +3420,7 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 			if(this.collection.where({
 				selected :true
 			}).length == 0){
-				this.select(model.get('name'));
+				this.select(model.get('value'));
 			}
 		},
 
@@ -3060,8 +3439,8 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 					$ul.append(self.createItem(model));
 				});
 
-				var $button = $('.lblend-select-button'),
-				offset = $button.offset();
+				var $button = this.$el.find('.lblend-select-button'),
+					offset = $button.offset();
 				$(document.body).append($ul);
 				$ul.css({
 					'position' : 'absolute'
@@ -3078,10 +3457,10 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 		createItem : function(model){
 			var self = this;
 			var $li = $('<li></li>');
-			$li.data('name', model.get('name'));
-			$li.html(model.get('value'));
+			$li.data('value', model.get('value'));
+			$li.html(model.get('html'));
 			$li.click(function(){
-				self.select(model.get('name'));
+				self.select(model.get('value'));
 				self.toggle();
 			});
 			if(model.get('selected')){
@@ -3095,9 +3474,9 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 			this.$el.children('label.lblend-select-label').html(name);
 		},
 
-		select : function(name){
+		select : function(value){
 
-			this.collection.select(name);
+			this.collection.select(value);
 
 			var $ul = $('.lblend-select-dropdown-list'),
 				$lis = $ul.children('li'),
@@ -3106,16 +3485,16 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 			$lis.removeClass('selected');
 			$ul.children('li').each(function(){
 				var $this = $(this);
-				if( $this.data('name') == name ){
+				if( $this.data('value') == value ){
 					$this.addClass('selected');
 				}
 			})
 			
 			var model = this.collection.where({
-				name : name
+				value : value
 			})[0];
 			if(model){
-				this.$el.find('.lblend-select-button').html(model.get('value'));
+				this.$el.find('.lblend-select-button').html(model.get('html'));
 			}
 		}
 		
@@ -3226,7 +3605,7 @@ define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports
 				$el.append(this.model.get('texture').image)
 			}
 			else{
-				$el.append('<img clas=".lblend-texture-default" />');
+				$el.append('<img class="lblend-texture-default" />');
 			}
 		},
 
@@ -3246,6 +3625,8 @@ define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports
 //=====================
 define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
+
+	var treeInstances = [];
 	// data structure
 	// + type : 		file|folder
 	// + name : ""
@@ -3287,7 +3668,7 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 		var html = _.template('<li class="lblend-tree-file">\
 						<span class="lblend-tree-title" draggable="true">\
 							<span class="{{icon}}"></span>\
-							{{name}}\
+							<a>{{name}}</a>\
 						</span>\
 					</li>', {
 						icon : this.icon,
@@ -3307,17 +3688,6 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
 		}, false)
-
-
-		$el.click(function(e){
-			e.stopPropagation();
-			if( ! e.shiftKey){
-				self.getRoot().traverse(function(node){
-					node.unselect();
-				})
-			}
-			self.select();
-		})
 
 		return $el;
 	}
@@ -3343,14 +3713,18 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 	}
 	File.prototype.setName = function(name, silent){
 		
-		this.name = name;
-
-		if( this.$el ){
-			this.$el.children('.lblend-tree-title').html( name );
-		}
 		if( ! silent){
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
+
+		if( this.$el ){
+			this.$el.children('.lblend-tree-title').find('a').html( name );
+		}
+		//update data
+		this.$el.data('path', this.getPath());
+
 	}
 	File.prototype.toJSON = function(){
 		var item = {
@@ -3411,13 +3785,17 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 	Folder.prototype.setName = function(name, silent){
 
-		this.name = name;
-		if( this.$el ){
-			this.$el.children('.lblend-tree-title').html( name );
-		}
 		if( ! silent){
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
+		if( this.$el ){
+			this.$el.children('.lblend-tree-title').find('a').html( name );
+		}
+
+		//update data
+		this.$el.data('path', this.getPath());
 	}
 	Folder.prototype.getRoot = function(){
 		var root = this;
@@ -3482,7 +3860,7 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 						<span class="lblend-tree-title" draggable="true">\
 							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
 							<span class="{{icon}}"></span>\
-							{{name}}\
+							<a>{{name}}</a>\
 						</span>\
 						<ul>\
 						</ul>\
@@ -3508,17 +3886,6 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
 		}, false)
-
-		$el.click(function(e){
-			e.stopPropagation();
-			if( ! e.shiftKey){
-				self.getRoot().traverse(function(node){
-					node.unselect();
-				})
-			}
-			self.select();
-			self.toggleCollapase();
-		})
 
 		this.$el = $el;
 		this.$sub = $ul;
@@ -3717,6 +4084,8 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 	var View = Backbone.View.extend({
 
+		type : 'THREE',
+
 		className : 'lblend-tree',
 
 		tagName : 'div',
@@ -3726,7 +4095,8 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 		events : {
 			'dragenter li' : 'dragenterHandler',
 			'dragleave li' : 'dragleaveHandler',
-			'drop li' : 'dropHandler'
+			'drop li' : 'dropHandler',
+			'click .lblend-tree-title' : 'clickTitleHanlder'
 		},
 
 		initialize : function(){
@@ -3761,6 +4131,13 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 					}
 				})
 			})
+
+			// !! if the treeview is not used anymore 
+			// must trigger dispose event manually
+			treeInstances.push(this);
+			this.on('dispose', function(){
+				_.without(treeInstances, self);
+			})
 		},
 
 		render : function(){
@@ -3770,6 +4147,26 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 			this.$el.html('');
 			this.$el.append( this.root.genElement() );
 
+		},
+
+		clickTitleHanlder : function(e){
+			var $li = $(e.currentTarget).parent();
+			var path = $li.data('path');
+			var node = this.find(path);
+			node.select();
+
+			if( ! e.shiftKey){
+				this.root.traverse(function(_node){
+					_node.unselect();
+				})
+			}
+			node.select();
+			if(node.type == 'folder'){
+
+				node.toggleCollapase();
+			}
+			// node click event
+			this.trigger('click:node', node);
 		},
 
 		find : function(path){
@@ -4038,6 +4435,8 @@ define("Core/UIBase/Tab-debug", ["./Layer-debug"], function(require, exports){
 
 	var View = Backbone.View.extend({
 
+		type : 'TAB',
+
 		className : 'lblend-tab',
 
 		template : '<ul class="lblend-tab-tabs"></ul><div class="lblend-list"></div>',
@@ -4092,10 +4491,7 @@ define("Core/UIBase/Tab-debug", ["./Layer-debug"], function(require, exports){
 
 				var $el = $('<li>'+tab.get('name')+'</li>');
 				$el.click(function(){
-					self.tabs.forEach(function(_tab){
-						_tab.set('active', false);
-					});
-					tab.set('active', true);
+					self.active(tab.get('name'));
 				})
 				$tabs.append($el);
 				tab.set('$el', $el);
@@ -4154,13 +4550,18 @@ define("Core/UIBase/Tab-debug", ["./Layer-debug"], function(require, exports){
 		},
 
 		active : function(tabName){
+			var activeView;
 			this.tabs.forEach(function(tab){
 				if(tab.get('name') == tabName){
 					tab.set('active', true);
+					activeView = tab.get('view');
 				}else{
 					tab.set('active', false);
 				}
 			});
+			if(activeView && activeView.getMenuConfigs){
+
+			}
 		}
 
 	})
@@ -4645,7 +5046,7 @@ define("Core/UIBase/Mixin/OutputPin-debug", ["./Pin-debug"], function(require, e
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Util-debug", "./Assets/FileSystem-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug"], function(require, exports, module){
+define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Util-debug", "./Assets/FileSystem-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./Assets/Importer/Image-debug", "./Assets/Importer/DDS-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Image-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug"], function(require, exports, module){
 
 	exports.Hub 	= require('./Hub-debug');
 	exports.svg 	= require('./svg-debug');

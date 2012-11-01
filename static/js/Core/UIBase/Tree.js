@@ -4,6 +4,8 @@
 //=====================
 define(function(require, exports, module){
 
+
+	var treeInstances = [];
 	// data structure
 	// + type : 		file|folder
 	// + name : ""
@@ -45,7 +47,7 @@ define(function(require, exports, module){
 		var html = _.template('<li class="lblend-tree-file">\
 						<span class="lblend-tree-title" draggable="true">\
 							<span class="{{icon}}"></span>\
-							{{name}}\
+							<a>{{name}}</a>\
 						</span>\
 					</li>', {
 						icon : this.icon,
@@ -65,17 +67,6 @@ define(function(require, exports, module){
 
 			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
 		}, false)
-
-
-		$el.click(function(e){
-			e.stopPropagation();
-			if( ! e.shiftKey){
-				self.getRoot().traverse(function(node){
-					node.unselect();
-				})
-			}
-			self.select();
-		})
 
 		return $el;
 	}
@@ -101,14 +92,18 @@ define(function(require, exports, module){
 	}
 	File.prototype.setName = function(name, silent){
 		
-		this.name = name;
-
-		if( this.$el ){
-			this.$el.children('.lblend-tree-title').html( name );
-		}
 		if( ! silent){
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
+
+		if( this.$el ){
+			this.$el.children('.lblend-tree-title').find('a').html( name );
+		}
+		//update data
+		this.$el.data('path', this.getPath());
+
 	}
 	File.prototype.toJSON = function(){
 		var item = {
@@ -169,13 +164,17 @@ define(function(require, exports, module){
 
 	Folder.prototype.setName = function(name, silent){
 
-		this.name = name;
-		if( this.$el ){
-			this.$el.children('.lblend-tree-title').html( name );
-		}
 		if( ! silent){
 			this.getRoot().trigger('updated:name', this, name);
 		}
+
+		this.name = name;
+		if( this.$el ){
+			this.$el.children('.lblend-tree-title').find('a').html( name );
+		}
+
+		//update data
+		this.$el.data('path', this.getPath());
 	}
 	Folder.prototype.getRoot = function(){
 		var root = this;
@@ -240,7 +239,7 @@ define(function(require, exports, module){
 						<span class="lblend-tree-title" draggable="true">\
 							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
 							<span class="{{icon}}"></span>\
-							{{name}}\
+							<a>{{name}}</a>\
 						</span>\
 						<ul>\
 						</ul>\
@@ -266,17 +265,6 @@ define(function(require, exports, module){
 
 			e.dataTransfer.setData('text/plain', JSON.stringify(self.toJSON()) )
 		}, false)
-
-		$el.click(function(e){
-			e.stopPropagation();
-			if( ! e.shiftKey){
-				self.getRoot().traverse(function(node){
-					node.unselect();
-				})
-			}
-			self.select();
-			self.toggleCollapase();
-		})
 
 		this.$el = $el;
 		this.$sub = $ul;
@@ -475,6 +463,8 @@ define(function(require, exports, module){
 
 	var View = Backbone.View.extend({
 
+		type : 'THREE',
+
 		className : 'lblend-tree',
 
 		tagName : 'div',
@@ -484,7 +474,8 @@ define(function(require, exports, module){
 		events : {
 			'dragenter li' : 'dragenterHandler',
 			'dragleave li' : 'dragleaveHandler',
-			'drop li' : 'dropHandler'
+			'drop li' : 'dropHandler',
+			'click .lblend-tree-title' : 'clickTitleHanlder'
 		},
 
 		initialize : function(){
@@ -519,6 +510,13 @@ define(function(require, exports, module){
 					}
 				})
 			})
+
+			// !! if the treeview is not used anymore 
+			// must trigger dispose event manually
+			treeInstances.push(this);
+			this.on('dispose', function(){
+				_.without(treeInstances, self);
+			})
 		},
 
 		render : function(){
@@ -528,6 +526,26 @@ define(function(require, exports, module){
 			this.$el.html('');
 			this.$el.append( this.root.genElement() );
 
+		},
+
+		clickTitleHanlder : function(e){
+			var $li = $(e.currentTarget).parent();
+			var path = $li.data('path');
+			var node = this.find(path);
+			node.select();
+
+			if( ! e.shiftKey){
+				this.root.traverse(function(_node){
+					_node.unselect();
+				})
+			}
+			node.select();
+			if(node.type == 'folder'){
+
+				node.toggleCollapase();
+			}
+			// node click event
+			this.trigger('click:node', node);
 		},
 
 		find : function(path){

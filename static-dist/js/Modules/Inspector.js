@@ -35,468 +35,162 @@ define(function(require, exports, module){
 
 	function handleHubEvent(){
 
-		hub.on('selected:node', function(node){
+		hub.on('inspect:object', function(configs){
 
-			showProperties(node);
-
-			selectedNode = node;
-		});
-
-		hub.on('updated:object', function(node, query, value){
-
-			if( node == selectedNode ){
-
-				if( query == 'material'){
-
-					updateMaterialDetail( value, view.findByName('Material') );
-				}
-			}
+			view.removeAll();
+			_.each(configs, function(item, name){
+				
+				view.appendView( createView(name, item) );
+			})
 		})
 	}
 
-	function showProperties(node){
-		
-		view.removeAll();
+	function createView(name, item){
+		var itemView;
+		switch(item.type.toLowerCase()){
+			case 'layer':
+				itemView = new UIBase.Layer.View;
+				itemView.setName(name);
+				itemView.$el.addClass('inspector-'+name);
 
-		if( ! node){
-			return ;
+				_.each(item.sub, function(subItem, name){
+					itemView.appendView( createView(name, subItem) );
+				})
+				break;
+			case 'input':
+				itemView = createInputView(name, item.value, item.onchange);
+				break;
+			case 'image':
+				itemView = createImageView(name, item.value, item.onchange);
+				break;
+			case 'select':
+				itemView = createSelectView(name, item.value, item.options, item.onchange);
+				break;
+			case 'boolean':
+				itemView = createBooleanView(name, item.value, item.onchange);
+				break;
+			case 'vector':
+				itemView = createVectorView(name, item.value, item.min, item.max, item.step, item.onchange);
+				break;
 		}
-		// name layer;
-		view.appendView( createNameLayer(node) );
-		// transform layer;
-		view.appendView( createTransformLayer(node) );
-		// render layer
-		view.appendView( createRenderLayer(node) );
-
-		// 
-		if( node instanceof THREE.Light){
-
-			view.appendView( createLightLayer(node) );
-		}
-
-		else if(node instanceof THREE.Mesh){
-
-			view.appendView( createMaterialLayer(node) );
-		}
-
-		if( node instanceof THREE.Camera){
-
-			view.appendView( createCameraLayer(node) );
-		}
-		
+		return itemView;
 	}
 
-	function createNameLayer(node){
+	function createInputView(name, value, onchange){
+		var view = new UIBase.Input.View;
 
-		var container = new UIBase.Layer.View;
-		container.$el.addClass('inspector-name');
-		container.setName('Name');
-		container.hideLabel();
-
-		var inputView = new UIBase.Input.View;
-		inputView.model.set('value', node.name);
-		inputView.on('change:value', function(model, value){
-			hub.trigger('update:object', node, 'name', value);
-		})
-		container.appendView(inputView);
-
-		return container;
-	}
-
-	function createRenderLayer(node){
-
-		var container = new UIBase.Layer.View;
-		container.$el.addClass('inspector-render');
-		container.setName('Render');
-
-		container.appendView( createBooleanView(node, 'castShadow') );
-		container.appendView( createBooleanView(node, 'receiveShadow') );
-
-		if(node instanceof THREE.DirectionalLight){
-			container.appendView( createFloatView(node, 'shadowCameraNear', 0.1, 100, 0.1) );
-			container.appendView( createFloatView(node, 'shadowCameraFar', 10, 1000, 0.1) );
-
-		}
-
-		UIBase.Mixin.Collapsable.applyTo(container);
-
-		return container;
-	}
-
-	function createTransformLayer(node){
-
-		var container = new UIBase.Layer.View;
-		container.setName('Transform');
-		container.$el.addClass('inspector-transform');
-
-		// position
-		var view = createVector3View(node, 'position', -1000000, 1000000, 0.5);
-		container.appendView( view );
-
-		// rotation
-		view = createVector3View(node, 'rotation', -1000000, 1000000, 0.1);
-		container.appendView( view );
-
-		// scale
-		view = createVector3View(node, 'scale', -1000000, 1000000, 0.1);
-		container.appendView( view );
-
-		//apply collapasable
-		UIBase.Mixin.Collapsable.applyTo(container);
-		return container;
-	}
-
-	function createCameraLayer(camera){
-
-		var container = new UIBase.Layer.View;
-		container.setName('Camera');
-		container.$el.addClass('inspector-camera');
-
-		if( camera instanceof THREE.PerspectiveCamera ){
-
-			append( createFloatView( camera, 'fov', 0, 90, 0.1, onchange));
-			append( createFloatView( camera, 'near', 0, 10, 0.05, onchange ));
-			append( createFloatView( camera, 'far', 0, 10000, 1, onchange ));
-
-		}
-		else{
-			append( createFloatView( camera, 'left', -1000, 0, 1, onchange));
-			append( createFloatView( camera, 'right', 0, 1000, 1, onchange ));
-			append( createFloatView( camera, 'top', 0, 1000, 1, onchange ));
-			append( createFloatView( camera, 'bottom', -1000, 0, 1, onchange ));
-			append( createFloatView( camera, 'near', -1000, 0, 1, onchange ));
-			append( createFloatView( camera, 'far', 0, 1000, 1, onchange ));
-		
-		}
-
-		var viewCamera = new UIBase.Button.View;
-		viewCamera.model.set({
-			name : 'viewCamera',
-			label : 'viewCamera'
+		view.model.set({
+			name : name,
+			value : value
 		})
 
-		append( viewCamera );
-		viewCamera.on('click', function(){
-			hub.trigger('view:camera', camera);
-		})
-		
-		// decorate for container.appendView
-		function append(view){
-			container.appendView( view );
-		}
-		function onchange(){
-			camera.updateProjectionMatrix();
-		}
-
-		return container;
-	}
-
-	function createMaterialLayer(mesh){
-
-		var container = new UIBase.Layer.View;
-		container.setName('Material');
-		container.$el.addClass('inspector-material');
-
-		updateMaterialDetail(mesh.material, container);
-
-		// 拖拽添加材质
-		container.el.addEventListener('drop', function(e){
-
-			e.stopPropagation();
-			var json = e.dataTransfer.getData('text/plain');
-			
-			if( json ){
-
-				var data = project.receiveDataTransfer( json, 'material');
-				if( data ){
-
-					hub.trigger('update:object', mesh, 'material', data);
-				}
-			}
-		})
-			
-		UIBase.Mixin.Collapsable.applyTo(container);
-
-		return container;
-	}
-
-	function updateMaterialDetail(material, container){
-			
-		container.removeAll();
-		
-		var materialName = new UIBase.Label.View;
-		materialName.$el.addClass('inspector-material-name');
-		container.appendView(materialName);
-
-		if( material.__system__ ){
-			materialName.model.set('value', 'none')
-			return ;
-		}
-		materialName.model.set('value', material.name);
-
-		var materialSelect = new UIBase.Select.View;
-		materialSelect.collection.add([
-			{name:'basic', value:'Basic Material'},
-			{name:'lambert', value:'Lambert Material'},
-			{name:'phong', value:'Phong Material'},
-			{name:'custom', value:'Custom Material'}
-		]);
-		materialSelect.setName('type');
-		container.appendView(materialSelect);
-
-		_.each(materialMap, function(Material, name){
-			if( material instanceof Material ){
-				materialSelect.select(name);
-			}
+		view.model.on('change:value', function(model, value){
+			onchange && onchange(value);
 		})
 
-		materialSelect.on('change', function(model){
-			// how to change an object's instanceof
-			// var Material = materialMap[model.get('name')];
-			// // modify the constructor
-			// material.constructor = Material;
-			// var newMat = new Material();
-			// var props = {};
-			// newMat.clone( props );
-			// // extend the props to the material(no overwrite)
-			// _.defaults(material, props);
-
-			// hub.trigger('updated:object', material, '', null);
-		})
-
-		// common material options
-		append( createBooleanView( material, 'depthTest') );
-		// todo add the disable of the ui compoment
-		append( createBooleanView( material, 'transparent') );
-		// wireframe still useless
-		append( createBooleanView( material, 'wireframe' ) );
-		append( createFloatView(material, 'opacity', 0, 1.0, 0.001) );
-
-		append( createBooleanView( material, 'visible') );
-		
-		if( ! ( material instanceof THREE.ShaderMaterial ) ){
-
-			append( createColorView( material, 'color' ) );
-			append( createColorView( material, 'ambient' ) );
-			append( createColorView( material, 'emissive' ) );
-
-			if( material instanceof THREE.MeshPhongMaterial ){
-			
-				append( createColorView( material, 'specular' ) );
-				append( createFloatView( material, 'shininess', 0, 100, 0.1 ) );
-				append( createBooleanView( material, 'metal') );
-				append( createBooleanView( material, 'perPixel') );
-
-			}
-
-			// todo add other map and texture repeat
-			append( createTextureView( material, 'map') );
-			append( createTextureView( material, 'lightMap') );
-
-			if( material instanceof THREE.MeshPhongMaterial ){
-				append( createTextureView( material, 'normalMap') );
-			}
-			else{
-				append( createTextureView( material, 'specularMap') );
-			}
-		}
-		else{
-
-
-		}
-
-		// decorate for container.appendView
-		function append(view){
-			container.appendView( view );
-		}
-	}
-
-	var materialMap = {
-		'basic' : THREE.MeshBasicMaterial,
-		'lambert' : THREE.MeshLambertMaterial,
-		'phong' : THREE.MeshPhongMaterial,
-		'custom' : THREE.ShaderMaterial
-	}
-
-	function createLightLayer(light){
-		
-		var container = new UIBase.Layer.View;
-		container.setName('Light');
-		container.$el.addClass('inspector-light');
-
-		container.appendView( createColorView(light, 'color') );
-		
-		if(light instanceof THREE.AmbientLight){
-
-		}
-		else if(light instanceof THREE.PointLight){
-			var intensityView = createFloatView(light, 'intensity', 0, 10, 0.01);
-			container.appendView(intensityView);
-			
-			var distanceView = createFloatView(light, 'distance', 0, 1000, 0.1);
-			container.appendView(distanceView);
-		}
-		else if(light instanceof THREE.SpotLight){
-
-		}
-		else if(light instanceof THREE.DirectionalLight){
-
-		}
-		//apply collapasable
-		UIBase.Mixin.Collapsable.applyTo(container);
-		return container;
-	}
-
-	function createTextureView( obj, key ){
-
-		var view = new UIBase.Texture.View;
-		view.model.set( 'name', key )
-		
-		if( obj[key] ){
-			if( ! ( obj[key] instanceof THREE.DataTexture ) ){
-				view.model.set( 'texture', obj[key] );
-				// todo 不能这样写死
-				view.model.set( 'filename', '/project/texture/'+obj[key].name);
-			}
-		}
-
-		// 拖拽添加纹理
-		view.popup.addEventListener('drop', function(e){
-
-			e.stopPropagation();
-			var json = e.dataTransfer.getData('text/plain');
-			
-			if( json ){
-
-				var data = project.receiveDataTransfer( json, 'texture' );
-				if( data ){
-					// update the texture
-					data.needsUpdate = true;
-					hub.trigger('update:object', obj, key, data);
-
-					json = JSON.parse(json);
-					view.model.set('texture', data);
-					view.model.set('filename', json.uri);
-				}
-
-			}
-		})
-
-		view.model.on('change:texture', function(){
-			obj.needsUpdate = true;
-		})
-	
 		return view;
 	}
 
-	function createBooleanView( obj, key ){
+	function createImageView(name, image, onchange ){
+
+		var view = new UIBase.Image.View;
+		view.model.set({
+			name : name,
+			src : image.src
+		});
+		image.onload = function(){
+			onchange && onchange(image);		
+		}	
+		view.model.on('change:src', function(model, value){
+
+			image.src = value;
+		});
+
+		return view;
+	}
+
+	function createTextureView(name, value, onchange ){
+
+		var view = new UIBase.Texture.View;
+		
+
+		return view;
+	}
+
+	function createBooleanView(name, value, onchange ){
 
 		var view = new UIBase.Checkbox.View;
 		view.model.set({
-			'name' : key,
-			'value' : obj[key]
+			'name' : name,
+			'value' : value
 		})
 		view.model.on('change:value', function(model, value){
-			hub.trigger('update:object', obj, key, value);
-
+			onchange && onchange(value);
 		})
 
 		return view;
 	}
 
-	function createFloatView(obj, key, min, max, step, onchange){
+	function createSelectView(name, value, options, onchange){
+		var view = new UIBase.Select.View;
+		view.setName(name);
+		_.each(options, function(item){
+			view.collection.add({
+				name : item['value'],
+				value : item['value'],
+				html : item['description']
+			});
+		})
+		view.select(value);
+
+		view.on('change', function(item){
+			onchange && onchange(item.get('value'));
+		})
+
+		return view;
+	}
+
+	function createFloatView(name, value, min, max, step, onchange){
 
 		var view = new UIBase.Float.View;
 		view.model.set({
 			'name' : key,
-			'value': obj[key],
+			'value': value,
 			'min' : min,
 			'max' : max,
 			'step' : step
 		});
 		view.model.on('change:value', function(model, value){
 			
-			hub.trigger('update:object', obj, key, value);
-
-			onchange && onchange();
+			onchange && onchange(value);
 		})
 
 		return view;
 	}
 
-	function createVector2View(obj, key, min, max, step, onchange){
-		var v = obj[key];
+	function createVectorView(name, value, min, max, step, onchange){
+
 		var view = new UIBase.Vector.View;
-		view.collection.add([
-			{value : v.x, name : 'x', min: min, max : max, step : step},
-			{value : v.y, name : 'y', min: min, max : max, step : step}
-		]);
-		view.setName(key);
-		bindVectorUpdateEvent(view.collection, obj, key);
-		
-		return view;
-	}
+		view.setName(name);
 
-	function createVector3View(obj, key, min, max, step, onchange){
-		var v = obj[key];
-		var view = new UIBase.Vector.View;
-		view.collection.add([
-			{value : v.x, name : 'x', min: min, max : max, step : step},
-			{value : v.y, name : 'y', min: min, max : max, step : step},
-			{value : v.z, name : 'z', min: min, max : max, step : step}
-		]);
-		view.setName(key);
-		bindVectorUpdateEvent(view.collection, obj, key, onchange);
-
-		return view;
-	}
-
-	function createVector4View(obj, key, min, max, step, onchange){
-		var v = obj[key];
-		var view = new UIBase.Vector.View;
-		view.collection.add([
-			{value : v.x, name : 'x', min: min, max : max, step : step},
-			{value : v.y, name : 'y', min: min, max : max, step : step},
-			{value : v.z, name : 'z', min: min, max : max, step : step},
-			{value : v.z, name : 'w', min: min, max : max, step : step}
-		]);
-		var sets = {};
-
-		view.setName(key);
-		bindVectorUpdateEvent(view.collection, obj, key, onchange);
-
-		return view;
-	}
-
-	function bindVectorUpdateEvent(collection, obj, key, onchange){
-		collection.forEach(function(model){
-			var name = model.get('name');	//保存name, 防止被修改成uv后不能正确访问vector
-			model.on('change:value', function(model){
-				hub.trigger('update:object', obj, key+'.'+name, model.get('value') );
-
-				onchange && onchange( )
-			})
-		})
-	}
-
-	function createColorView(obj, key){
-		var c = obj[key];
-		var view = new UIBase.Color.View({
-			model : new UIBase.Color.Model({
+		_.each(value, function(val, key){
+			view.collection.add({
 				name : key,
-				color : c.getHex()
+				value : val,
+				min : min,
+				max : max,
+				step : step
 			})
 		})
-		view.model.on('change:color', function(model, value){
-			var hex = parseInt(value, 16);
-			var r = ( hex >> 16 & 255 ) / 255,
-				g = ( hex >> 8 & 255 ) / 255,
-				b = ( hex & 255 ) / 255;
-			hub.trigger('update:object', obj, key+'.r', r);
-			hub.trigger('update:object', obj, key+'.g', g);
-			hub.trigger('update:object', obj, key+'.b', b);
+		view.collection.on('change:value', function(model){
+			onchange && onchange(model.get('name'), model.get('value'));
 		})
+
 		return view;
+	}
+
+	function createColorView(name, value, onchange){
+		
 	}
 
 	return {

@@ -95,7 +95,7 @@ define(function(require, exports, module){
 				$el.append(this.model.get('texture').image)
 			}
 			else{
-				$el.append('<img clas=".lblend-texture-default" />');
+				$el.append('<img class="lblend-texture-default" />');
 			}
 		},
 

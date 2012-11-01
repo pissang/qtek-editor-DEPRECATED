@@ -6,17 +6,18 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',	//这里name对应option的value
-			value : '',
+			name : '',	
+			value : '', //这里name对应option的value
+			html : '',	// 每个option的html
 			selected : false
 		}
 	});
 
 	var Collection = Backbone.Collection.extend({
 		
-		select : function(name){
+		select : function(value){
 			this.forEach(function(model){
-				if(model.get('name') == name){
+				if(model.get('value') == value){
 					model.set('selected', true);
 				}else{
 					model.set('selected', false);
@@ -73,7 +74,7 @@ define(function(require, exports, module){
 			if(this.collection.where({
 				selected :true
 			}).length == 0){
-				this.select(model.get('name'));
+				this.select(model.get('value'));
 			}
 		},
 
@@ -92,8 +93,8 @@ define(function(require, exports, module){
 					$ul.append(self.createItem(model));
 				});
 
-				var $button = $('.lblend-select-button'),
-				offset = $button.offset();
+				var $button = this.$el.find('.lblend-select-button'),
+					offset = $button.offset();
 				$(document.body).append($ul);
 				$ul.css({
 					'position' : 'absolute'
@@ -110,10 +111,10 @@ define(function(require, exports, module){
 		createItem : function(model){
 			var self = this;
 			var $li = $('<li></li>');
-			$li.data('name', model.get('name'));
-			$li.html(model.get('value'));
+			$li.data('value', model.get('value'));
+			$li.html(model.get('html'));
 			$li.click(function(){
-				self.select(model.get('name'));
+				self.select(model.get('value'));
 				self.toggle();
 			});
 			if(model.get('selected')){
@@ -127,9 +128,9 @@ define(function(require, exports, module){
 			this.$el.children('label.lblend-select-label').html(name);
 		},
 
-		select : function(name){
+		select : function(value){
 
-			this.collection.select(name);
+			this.collection.select(value);
 
 			var $ul = $('.lblend-select-dropdown-list'),
 				$lis = $ul.children('li'),
@@ -138,16 +139,16 @@ define(function(require, exports, module){
 			$lis.removeClass('selected');
 			$ul.children('li').each(function(){
 				var $this = $(this);
-				if( $this.data('name') == name ){
+				if( $this.data('value') == value ){
 					$this.addClass('selected');
 				}
 			})
 			
 			var model = this.collection.where({
-				name : name
+				value : value
 			})[0];
 			if(model){
-				this.$el.find('.lblend-select-button').html(model.get('value'));
+				this.$el.find('.lblend-select-button').html(model.get('html'));
 			}
 		}
 		

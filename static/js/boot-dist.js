@@ -1,5 +1,6 @@
 //======================
-//boot.js
+//boot.dist.js
+//boot.js template of distribution
 //======================
 
 (function(){

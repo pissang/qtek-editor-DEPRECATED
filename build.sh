@@ -18,7 +18,7 @@ cp js/lib/LAB.min.js ../static-dist/js/lib/LAB.min.js
 cp js/lib/zip/inflate.js ../static-dist/js/lib/zip/inflate.js
 cp js/lib/zip/deflate.js ../static-dist/js/lib/zip/deflate.js
 
-#todo add js/lib/colorpicker/colorpicker.js\
+#todo add js/lib/colorpicker/colorpicker.js
 cat js/lib/sea.js\
 	js/lib/three.min.js\
 	js/lib/loader/ColladaLoader.js\

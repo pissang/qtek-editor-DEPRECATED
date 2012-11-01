@@ -13,9 +13,9 @@ define(function(require, exports, module){
 
 	function create( geo ){
 
-		var name = geo && geo.name
+		var name = geo && geo.name;
 
-		return {
+		var ret = {
 
 			type : 'geometry',
 
@@ -23,11 +23,13 @@ define(function(require, exports, module){
 
 			data : geo || null,
 
-			rawdata : '',
+			host : null,
+
 			// import from json
 			import : function(json){
 				this.data = read(json);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -45,8 +47,17 @@ define(function(require, exports, module){
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		geo && (geo.host = ret);
+
+		return ret;
 	}
 
 	function read(json){

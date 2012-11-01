@@ -67,6 +67,7 @@
 					'./js/Core/UIBase/Checkbox',
 					'./js/Core/UIBase/Color',
 					'./js/Core/UIBase/Float',
+					'./js/Core/UIBase/Image',
 					'./js/Core/UIBase/index',
 					'./js/Core/UIBase/Layer',
 					'./js/Core/UIBase/Input',
@@ -97,7 +98,10 @@
 					'./js/Core/Assets/Prefab',
 					'./js/Core/Assets/Importer/Binary',
 					'./js/Core/Assets/Importer/JSON',
-					'./js/Core/Assets/Importer/Collada'
+					'./js/Core/Assets/Importer/Collada',
+					'./js/Core/Assets/Importer/Zip',
+					'./js/Core/Assets/Importer/Image',
+					'./js/Core/Assets/Importer/DDS'
 				], function(){
 			
 			seajs.use('./js/app')

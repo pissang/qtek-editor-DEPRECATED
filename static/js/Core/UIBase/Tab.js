@@ -9,6 +9,8 @@ define(function(require, exports){
 
 	var View = Backbone.View.extend({
 
+		type : 'TAB',
+
 		className : 'lblend-tab',
 
 		template : '<ul class="lblend-tab-tabs"></ul><div class="lblend-list"></div>',
@@ -63,10 +65,7 @@ define(function(require, exports){
 
 				var $el = $('<li>'+tab.get('name')+'</li>');
 				$el.click(function(){
-					self.tabs.forEach(function(_tab){
-						_tab.set('active', false);
-					});
-					tab.set('active', true);
+					self.active(tab.get('name'));
 				})
 				$tabs.append($el);
 				tab.set('$el', $el);
@@ -125,13 +124,18 @@ define(function(require, exports){
 		},
 
 		active : function(tabName){
+			var activeView;
 			this.tabs.forEach(function(tab){
 				if(tab.get('name') == tabName){
 					tab.set('active', true);
+					activeView = tab.get('view');
 				}else{
 					tab.set('active', false);
 				}
 			});
+			if(activeView && activeView.getMenuConfigs){
+
+			}
 		}
 
 	})

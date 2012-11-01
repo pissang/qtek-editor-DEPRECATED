@@ -7,6 +7,7 @@ define(function(require, exports, module){
 	exports.Button 		= require('./Button'); 
 	exports.Checkbox 	= require('./Checkbox');
 	exports.Float 		= require('./Float');
+	exports.Image 		= require('./Image');
 	exports.Input 		= require('./Input');
 	exports.Label 		= require('./Label');
 	exports.Color 		= require('./Color');

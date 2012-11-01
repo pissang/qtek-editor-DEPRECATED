@@ -62,7 +62,10 @@ define(function(require, exports, module){
 				var treeNode = createTreeNode(sceneNode);
 				treeParent.add(treeNode, true);
 				_.each(sceneNode.children, function(_node){
-					walk(_node, treeNode);
+					// ignore helper
+					if( ! _node.__helper__){
+						walk(_node, treeNode);
+					}
 				})
 			}
 

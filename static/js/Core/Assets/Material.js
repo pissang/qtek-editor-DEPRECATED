@@ -13,7 +13,7 @@ define(function(require, exports, module){
 
 		var name = mat && mat.name;
 		
-		return {
+		var ret = {
 
 			type : 'material',
 
@@ -21,11 +21,13 @@ define(function(require, exports, module){
 
 			data : mat || null,
 
-			rawdata : '',
+			host : null,
+
 			// textureScope is a function to query a texture
 			import : function(json, textureScope){
 				this.data = read(json, textureScope);
-				this.rawdata = json;
+
+				this.data.host = this;
 
 				if( json.name ){
 					this.name = json.name;
@@ -42,10 +44,28 @@ define(function(require, exports, module){
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getConfig : function(){
+				return getConfig( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
 			}
 		}
+
+		mat && (mat.host = ret);
+
+		return ret;
 	}
 
+	function parseShaders(){
+
+	}
+
+	// we drop all the material types in THREE.js and leave a ShaderMaterial
+	// to manage shaders, to keep material management more clearly;
 	function read(m, textureScope){
 
 		if( material ){
@@ -195,77 +215,7 @@ define(function(require, exports, module){
 			json['fragmentShader'] = material.fragmentShader;
 			json['type'] = 'shader';
 		}
-		else{
-			if( material.map && ! material.map.__system__){
-
-				json['map'] = textureUriBase + material.map.name;
-			}
-			if( material.lightMap ){
-
-				json['lightMap'] = textureUriBase + material.lightMap.name;
-			}
-			if( material.specularMap ){
-
-				json['specularMap'] = textureUriBase + material.specularMap.name;
-			}
-			if( material.envMap ){
-
-				json['envMap'] = textureUriBase + material.envMap.name;
-			}
-
-			_.extend( json, {
-				'opacity' : material.opacity,
-				'transparent' : material.transparent,
-				'color' : material.color.getHex(),
-				'combine' :  material.combine,
-				'reflectivity' : material.reflectivity,
-				'refractionRatio' : material.refractionRatio,
-				'shading' : material.shading,
-				'wireframe' : material.wireframe
-			})
-
-			if( material instanceof THREE.MeshBasicMaterial ){
-				json['type'] = 'basic';
-			}
-			else if( material instanceof THREE.MeshLambertMaterial ){
-
-				_.extend(json, {
-					'type' : 'lambert',
-					'ambient' : material.ambient.getHex(),
-					'emissive' : material.emissive.getHex()
-				})
-			}
-			else if( material instanceof THREE.MeshPhongMaterial ){
-
-				_.extend(json, {
-
-					'type' : 'phong',
-					'ambient' : material.ambient.getHex(),
-					'emissive' : material.emissive.getHex(),
-
-					'specular' : material.specular,
-					'shininess' : material.shininess,
-					'metal' : material.metal,
-					'perPixel' : material.perPixel,
-
-				})
-				if( material.bumpMap ){
-					_.extend( json, {
-
-						'bumpMap' : textureUriBase + material.bumpMap.name,
-						'bumpScale' : material.bumpScale
-					})
-				}
-				if( material.normalMap ){
-
-					_.extend( json, {
-
-						'normalMap' : textureUriBase + material.normalMap.name,
-						'normalScale' : material.normalScale
-					})
-				}
-			}
-		}
+		
 		return json;
 	}
 
@@ -311,6 +261,28 @@ define(function(require, exports, module){
 		}
 
 		return clonedMaterial;
+	}
+
+	function getConfig( material ){
+		
+		var props = {
+			'name' : {
+				type : 'input',
+				value : material.name,
+				onchange : function(value){
+					material.name = value;
+					material.host.name = value;
+					material.host.host.setName(value);
+				}
+			},
+		}
+
+		return {
+			'Material Asset' : {
+				type : 'layer',
+				sub : props
+			}
+		}
 	}
 
 	exports.create = create;
