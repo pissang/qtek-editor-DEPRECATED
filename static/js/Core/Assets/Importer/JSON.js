@@ -20,7 +20,7 @@ define(function(require, exports, module){
 			var material = createMaterial(mat, function(name){
 				
 				var file = folder.find( name )
-				if( ! asset ){
+				if( ! file ){
 					file = folder.find( 'textures/'+name);
 				}
 				return file.data.getInstance();

@@ -2,6 +2,9 @@
 // Geometry.js
 //
 // Basic Geometry Asset
+//
+// Geometry Asset is part of Prefab Asset
+//
 // Save an geometry instance, which can be imported and exported as a json format asset
 //========================
 define(function(require, exports, module){
@@ -83,7 +86,6 @@ define(function(require, exports, module){
 		// https://github.com/mrdoob/three.js/issues/363
 		// https://github.com/mrdoob/three.js/wiki/Updates
 
-		// fucking cache
 		// https://github.com/mrdoob/three.js/issues/2073
 		// https://github.com/mrdoob/three.js/issues/363
 		if( material.map ){

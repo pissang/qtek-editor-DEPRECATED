@@ -242,6 +242,9 @@ define(function(require, exports, module){
 
 		var rootCopied = Util.deepCloneNode(root);
 
+		// have the same host
+		rootCopied.host = root.host;
+
 		rootCopied.traverse( function(nodeCopied){
 			var name = nodeCopied.name,
 				node = root.getChildByName(name, true);

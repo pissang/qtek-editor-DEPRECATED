@@ -7,6 +7,7 @@ define(function(require, exports, module){
 	exports.Geometry 	= require('./Geometry');
 	exports.Material 	= require('./Material');
 	exports.Prefab 		= require('./Prefab');
+	exports.Shader		= require('./Shader');
 	exports.Texture 	= require('./Texture');
 	exports.TextureCube = require('./TextureCube');
 	exports.FileSystem 	= require('./FileSystem');
