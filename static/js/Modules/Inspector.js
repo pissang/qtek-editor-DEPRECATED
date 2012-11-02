@@ -7,7 +7,7 @@ define(function(require, exports, module){
 	var UIBase = require('../Core/UIBase/index');
 	UIBase.Mixin = require('../Core/UIBase/Mixin/index');
 	var hub = require('../Core/Hub').getInstance();
-	var project = require('./Project').getInstance();
+	var FS = require('../Core/Assets/FileSystem');
 
 	var view;
 
@@ -81,6 +81,9 @@ define(function(require, exports, module){
 			case 'color':
 				itemView = createColorView(name, item.value, item.onchange);
 				break;
+			case 'texture':
+				itemView = createTextureView(name, item.value, item.onchange);
+				break;
 		}
 		return itemView;
 	}
@@ -121,7 +124,29 @@ define(function(require, exports, module){
 	function createTextureView(name, value, onchange ){
 
 		var view = new UIBase.Texture.View;
-		
+
+		// value is '' when the texture is null
+		if( value ){	
+			var texAsset = FS.root.find(value).data;
+			if( ! texAsset){
+				console.warn('texture '+value+' is not in the project');
+				return;
+			}
+			view.model.set({
+				name : name,
+				path : value,
+				texture : texAsset.data
+			})
+		}else{
+			view.model.set({
+				name : name,
+				path : ''
+			})
+		}
+
+		view.model.on('change:path', function(model, _value){
+			onchange && onchange(_value);
+		})
 
 		return view;
 	}

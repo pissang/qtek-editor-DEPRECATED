@@ -1,6 +1,6 @@
 //===================================
 // Color.js
-//
+// http://bgrins.github.com/spectrum/
 //===================================
 define(function(require, exports, module){
 
@@ -52,7 +52,8 @@ define(function(require, exports, module){
 			$input.spectrum({
 				clickoutFiresChange : true,
 				showButtons : false,
-				showInput : true
+				showInput : true,
+				preferredFormat : 'hex'
 			});
 
 			this.$input = $input;

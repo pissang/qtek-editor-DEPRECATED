@@ -63,7 +63,7 @@ h1{
 	height:100%;
 }
 .region.focus{
-	box-shadow: 0px 0px 4px #2BE232;
+	box-shadow: 0px 0px 4px #E08107;
 }
 .region.focus .lblend-tree li.active>.lblend-tree-title{
 	background-color: #1490D6;
@@ -126,6 +126,11 @@ h1{
 #Hierarchy .lblend-tree{
 	margin:5px 5px 0px -5px;
 }
+
+#Hierarchy .lblend-tree-root>ul>li>.lblend-tree-title{
+	background-color: #4B597C;
+	box-shadow: 0px 0px 2px black;
+}
 #Hierarchy .icon-node{
 	background-image:url(../img/icons/treeview.png);
 }
@@ -160,6 +165,10 @@ h1{
 }
 #Project .lblend-tree{
 	margin:5px 5px 0px -5px;
+}
+#Project .lblend-tree-root>ul>li>.lblend-tree-title{
+	background-color: #4B597C;
+	box-shadow: 0px 0px 2px black;
 }
 #Project .icon-small{
 	margin-right: 5px;	
@@ -264,23 +273,6 @@ h1{
 }
 /****material属性编辑****/
 .inspector-material>.lblend-list{
-}
-.inspector-material .lblend-texture{
-	box-sizing:border-box;
-}
-.inspector-material .lblend-texture label{
-	line-height: 20px;
-	color:white;
-	display: inline-block;
-	box-sizing: border-box;
-	text-align: left;
-}
-.inspector-material .lblend-texture .lblend-texture-filename{
-	margin-left: 10px;
-	background-color: #AFBFD6;
-	padding: 1px 3px;
-	border-radius: 3px;
-	cursor:pointer;
 }
 /****后期合成编辑器****/
 #Compositor{

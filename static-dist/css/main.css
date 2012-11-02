@@ -89,7 +89,7 @@ body{
 	font-size:10px;
 	margin:0px;
 	/*overflow: hidden;*/
-	background-color:#191919;
+	background-color:#2F2947;
 	overflow: hidden;
 	height:100%;
 }
@@ -144,7 +144,7 @@ h1{
 	height:100%;
 }
 .region.focus{
-	border:1px solid #FF8F00;
+	box-shadow: 0px 0px 4px #E08107;
 }
 .region.focus .lblend-tree li.active>.lblend-tree-title{
 	background-color: #1490D6;
@@ -207,6 +207,11 @@ h1{
 #Hierarchy .lblend-tree{
 	margin:5px 5px 0px -5px;
 }
+
+#Hierarchy .lblend-tree-root>ul>li>.lblend-tree-title{
+	background-color: #4B597C;
+	box-shadow: 0px 0px 2px black;
+}
 #Hierarchy .icon-node{
 	background-image:url(../img/icons/treeview.png);
 }
@@ -242,6 +247,10 @@ h1{
 #Project .lblend-tree{
 	margin:5px 5px 0px -5px;
 }
+#Project .lblend-tree-root>ul>li>.lblend-tree-title{
+	background-color: #4B597C;
+	box-shadow: 0px 0px 2px black;
+}
 #Project .icon-small{
 	margin-right: 5px;	
 }
@@ -266,6 +275,10 @@ h1{
 	height:100%;
 	box-sizing:border-box;
 }
+#Inspector label{
+	font-weight: bold;
+	color:white;
+}
 #Inspector>.lblend-list{
 	margin:0px 5px;
 	min-width: 300px;
@@ -283,10 +296,10 @@ h1{
 	border-radius: 5px 5px 0px 0px;
 }
 #Inspector .lblend-float{
-	width:200px;
+	width:240px;
 }
 #Inspector .lblend-vector .lblend-float{
-	width:120px;
+	width:160px;
 }
 #Inspector .lblend-checkbox,
 #Inspector .lblend-select,
@@ -341,23 +354,6 @@ h1{
 }
 /****material属性编辑****/
 .inspector-material>.lblend-list{
-}
-.inspector-material .lblend-texture{
-	box-sizing:border-box;
-}
-.inspector-material .lblend-texture label{
-	line-height: 20px;
-	color:white;
-	display: inline-block;
-	box-sizing: border-box;
-	text-align: left;
-}
-.inspector-material .lblend-texture .lblend-texture-filename{
-	margin-left: 10px;
-	background-color: #AFBFD6;
-	padding: 1px 3px;
-	border-radius: 3px;
-	cursor:pointer;
 }
 /****后期合成编辑器****/
 #Compositor{
@@ -843,168 +839,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
     visibility: hidden;
   }
 
-}.colorpicker {
-	width: 356px;
-	height: 176px;
-	overflow: hidden;
-	position: absolute;
-	background: url(../images/colorpicker_background.png);
-	font-family: Arial, Helvetica, sans-serif;
-	display: none;
-}
-.colorpicker_color {
-	width: 150px;
-	height: 150px;
-	left: 14px;
-	top: 13px;
-	position: absolute;
-	background: #f00;
-	overflow: hidden;
-	cursor: crosshair;
-}
-.colorpicker_color div {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 150px;
-	height: 150px;
-	background: url(../images/colorpicker_overlay.png);
-}
-.colorpicker_color div div {
-	position: absolute;
-	top: 0;
-	left: 0;
-	width: 11px;
-	height: 11px;
-	overflow: hidden;
-	background: url(../images/colorpicker_select.gif);
-	margin: -5px 0 0 -5px;
-}
-.colorpicker_hue {
-	position: absolute;
-	top: 13px;
-	left: 171px;
-	width: 35px;
-	height: 150px;
-	cursor: n-resize;
-}
-.colorpicker_hue div {
-	position: absolute;
-	width: 35px;
-	height: 9px;
-	overflow: hidden;
-	background: url(../images/colorpicker_indic.gif) left top;
-	margin: -4px 0 0 0;
-	left: 0px;
-}
-.colorpicker_new_color {
-	position: absolute;
-	width: 60px;
-	height: 30px;
-	left: 213px;
-	top: 13px;
-	background: #f00;
-}
-.colorpicker_current_color {
-	position: absolute;
-	width: 60px;
-	height: 30px;
-	left: 283px;
-	top: 13px;
-	background: #f00;
-}
-.colorpicker input {
-	background-color: transparent;
-	border: 1px solid transparent;
-	position: absolute;
-	font-size: 10px;
-	font-family: Arial, Helvetica, sans-serif;
-	color: #898989;
-	top: 4px;
-	right: 11px;
-	text-align: right;
-	margin: 0;
-	padding: 0;
-	height: 11px;
-}
-.colorpicker_hex {
-	position: absolute;
-	width: 72px;
-	height: 22px;
-	background: url(../images/colorpicker_hex.png) top;
-	left: 212px;
-	top: 142px;
-}
-.colorpicker_hex input {
-	right: 6px;
-}
-.colorpicker_field {
-	height: 22px;
-	width: 62px;
-	background-position: top;
-	position: absolute;
-}
-.colorpicker_field span {
-	position: absolute;
-	width: 12px;
-	height: 22px;
-	overflow: hidden;
-	top: 0;
-	right: 0;
-	cursor: n-resize;
-}
-.colorpicker_rgb_r {
-	background-image: url(../images/colorpicker_rgb_r.png);
-	top: 52px;
-	left: 212px;
-}
-.colorpicker_rgb_g {
-	background-image: url(../images/colorpicker_rgb_g.png);
-	top: 82px;
-	left: 212px;
-}
-.colorpicker_rgb_b {
-	background-image: url(../images/colorpicker_rgb_b.png);
-	top: 112px;
-	left: 212px;
-}
-.colorpicker_hsb_h {
-	background-image: url(../images/colorpicker_hsb_h.png);
-	top: 52px;
-	left: 282px;
-}
-.colorpicker_hsb_s {
-	background-image: url(../images/colorpicker_hsb_s.png);
-	top: 82px;
-	left: 282px;
-}
-.colorpicker_hsb_b {
-	background-image: url(../images/colorpicker_hsb_b.png);
-	top: 112px;
-	left: 282px;
-}
-.colorpicker_submit {
-	position: absolute;
-	width: 22px;
-	height: 22px;
-	background: url(../images/colorpicker_submit.png) top;
-	left: 322px;
-	top: 142px;
-	overflow: hidden;
-}
-.colorpicker_focus {
-	background-position: center;
-}
-.colorpicker_hex.colorpicker_focus {
-	background-position: bottom;
-}
-.colorpicker_submit.colorpicker_focus {
-	background-position: bottom;
-}
-.colorpicker_slider {
-	background-position: bottom;
-}
-/*! jQuery UI - v1.9.1 - 2012-10-29
+}/*! jQuery UI - v1.9.1 - 2012-10-29
 * http://jqueryui.com
 * Includes: jquery.ui.core.css, jquery.ui.resizable.css, jquery.ui.selectable.css
 * To view and modify this theme, visit http://jqueryui.com/themeroller/?ffDefault=Trebuchet%20MS%2CTahoma%2CVerdana%2CArial%2Csans-serif&fwDefault=bold&fsDefault=1.1em&cornerRadius=4px&bgColorHeader=f6a828&bgTextureHeader=12_gloss_wave.png&bgImgOpacityHeader=35&borderColorHeader=e78f08&fcHeader=ffffff&iconColorHeader=ffffff&bgColorContent=eeeeee&bgTextureContent=03_highlight_soft.png&bgImgOpacityContent=100&borderColorContent=dddddd&fcContent=333333&iconColorContent=222222&bgColorDefault=f6f6f6&bgTextureDefault=02_glass.png&bgImgOpacityDefault=100&borderColorDefault=cccccc&fcDefault=1c94c4&iconColorDefault=ef8c08&bgColorHover=fdf5ce&bgTextureHover=02_glass.png&bgImgOpacityHover=100&borderColorHover=fbcb09&fcHover=c77405&iconColorHover=ef8c08&bgColorActive=ffffff&bgTextureActive=02_glass.png&bgImgOpacityActive=65&borderColorActive=fbd850&fcActive=eb8f00&iconColorActive=ef8c08&bgColorHighlight=ffe45c&bgTextureHighlight=03_highlight_soft.png&bgImgOpacityHighlight=75&borderColorHighlight=fed22f&fcHighlight=363636&iconColorHighlight=228ef1&bgColorError=b81900&bgTextureError=08_diagonals_thick.png&bgImgOpacityError=18&borderColorError=cd0a0a&fcError=ffffff&iconColorError=ffd27a&bgColorOverlay=666666&bgTextureOverlay=08_diagonals_thick.png&bgImgOpacityOverlay=20&opacityOverlay=50&bgColorShadow=000000&bgTextureShadow=01_flat.png&bgImgOpacityShadow=10&opacityShadow=20&thicknessShadow=5px&offsetTopShadow=-5px&offsetLeftShadow=-5px&cornerRadiusShadow=5px
@@ -1215,6 +1050,466 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 	-webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
 	background-size:20px 20px;
 	background-position:0 0, 30px 30px;
+}﻿/***
+Spectrum: The No Hassle Colorpicker
+https://github.com/bgrins/spectrum
+
+Author: Brian Grinstead
+License: MIT
+***/
+
+.sp-container {
+    position:absolute;
+    top:0;
+    left:0;
+    display:inline-block;
+    *display: inline;
+    *zoom: 1;
+    z-index: 2147483647;
+    overflow: hidden;
+}
+.sp-container.sp-flat {
+    position: relative;
+}
+
+/* http://ansciath.tumblr.com/post/7347495869/css-aspect-ratio */
+.sp-top {
+  position:relative;
+  width: 100%;
+  display:inline-block;
+}
+.sp-top-inner {
+   position:absolute;
+   top:0;
+   left:0;
+   bottom:0;
+   right:0;
+}
+.sp-color {
+    position: absolute;
+    top:0;
+    left:0;
+    bottom:0;
+    right:20%;
+}
+.sp-hue {
+    position: absolute;
+    top:0;
+    right:0;
+    bottom:0;
+    left:84%;
+    height: 100%;
+}
+.sp-fill {
+    padding-top: 80%;
+}
+.sp-sat, .sp-val {
+    position: absolute;
+    top:0;
+    left:0;
+    right:0;
+    bottom:0;
+}
+
+.sp-alpha-enabled .sp-top
+{
+    margin-bottom: 18px;
+}
+.sp-alpha-enabled .sp-alpha
+{
+    display: block;
+}
+
+.sp-alpha-handle
+{
+    position:absolute;
+    top:-4px;
+    bottom: -4px;
+    width: 6px;
+    left: 50%;
+    cursor: pointer;
+    border: 1px solid black;
+    background: white;
+    opacity: .8;
+}
+
+.sp-alpha
+{
+    display: none;
+    position: absolute;
+    bottom: -14px;
+    right: 0;
+    left: 0;
+    height: 8px;
+}
+.sp-alpha-inner{
+    border: solid 1px #333;
+}
+
+/* Don't allow text selection */
+.sp-container, .sp-replacer, .sp-preview, .sp-dragger, .sp-slider, .sp-alpha, .sp-alpha-handle, .sp-container.sp-dragging .sp-input, .sp-container button  {
+    -webkit-user-select:none;
+    -moz-user-select: -moz-none;
+    -o-user-select:none;
+    user-select: none;
+}
+
+.sp-container.sp-input-disabled .sp-input-container {
+    display: none;
+}
+.sp-container.sp-buttons-disabled .sp-button-container {
+    display: none;
+}
+.sp-palette-only .sp-picker-container {
+    display: none;
+}
+.sp-palette-disabled .sp-palette-container {
+    display: none;
+}
+
+.sp-initial-disabled .sp-initial {
+    display: none;
+}
+
+
+/* Gradients for hue, saturation and value instead of images.  Not pretty... but it works */
+.sp-sat {
+    background-image: -webkit-gradient(linear,  0 0, 100% 0, from(#FFF), to(rgba(204, 154, 129, 0)));
+    background-image: -webkit-linear-gradient(left, #FFF, rgba(204, 154, 129, 0));
+    background-image: -moz-linear-gradient(left, #fff, rgba(204, 154, 129, 0));
+    background-image: -o-linear-gradient(left, #fff, rgba(204, 154, 129, 0));
+    background-image: -ms-linear-gradient(left, #fff, rgba(204, 154, 129, 0));
+    background-image: linear-gradient(to right, #fff, rgba(204, 154, 129, 0));
+    -ms-filter: "progid:DXImageTransform.Microsoft.gradient(GradientType = 1, startColorstr=#FFFFFFFF, endColorstr=#00CC9A81)";
+    filter : progid:DXImageTransform.Microsoft.gradient(GradientType = 1, startColorstr='#FFFFFFFF', endColorstr='#00CC9A81');
+}
+.sp-val {
+    background-image: -webkit-gradient(linear, 0 100%, 0 0, from(#000000), to(rgba(204, 154, 129, 0)));
+    background-image: -webkit-linear-gradient(bottom, #000000, rgba(204, 154, 129, 0));
+    background-image: -moz-linear-gradient(bottom, #000, rgba(204, 154, 129, 0));
+    background-image: -o-linear-gradient(bottom, #000, rgba(204, 154, 129, 0));
+    background-image: -ms-linear-gradient(bottom, #000, rgba(204, 154, 129, 0));
+    background-image: linear-gradient(to top, #000, rgba(204, 154, 129, 0));
+    -ms-filter: "progid:DXImageTransform.Microsoft.gradient(startColorstr=#00CC9A81, endColorstr=#FF000000)";
+    filter : progid:DXImageTransform.Microsoft.gradient(startColorstr='#00CC9A81', endColorstr='#FF000000');
+
+    box-shadow: inset 0px 0px 10px black;
+}
+
+.sp-hue {
+    background: -moz-linear-gradient(top, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+    background: -ms-linear-gradient(top, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+    background: -o-linear-gradient(top, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+    background: -webkit-gradient(linear, left top, left bottom, from(#ff0000), color-stop(0.17, #ffff00), color-stop(0.33, #00ff00), color-stop(0.5, #00ffff), color-stop(0.67, #0000ff), color-stop(0.83, #ff00ff), to(#ff0000));
+    background: -webkit-linear-gradient(top, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%);
+
+    box-shadow: inset 0px 0px 7px black;
+}
+
+/* IE filters do not support multiple color stops.
+   Generate 6 divs, line them up, and do two color gradients for each.
+   Yes, really.
+ */
+
+.sp-1 {
+    height:17%;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff0000', endColorstr='#ffff00');
+}
+.sp-2 {
+    height:16%;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ffff00', endColorstr='#00ff00');
+}
+.sp-3 {
+    height:17%;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00ff00', endColorstr='#00ffff');
+}
+.sp-4 {
+    height:17%;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#00ffff', endColorstr='#0000ff');
+}
+.sp-5 {
+    height:16%;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#0000ff', endColorstr='#ff00ff');
+}
+.sp-6 {
+    height:17%;
+    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#ff00ff', endColorstr='#ff0000');
+}
+
+/* Clearfix hack */
+.sp-cf:before, .sp-cf:after { content: ""; display: table; }
+.sp-cf:after { clear: both; }
+.sp-cf { *zoom: 1; }
+
+/* Mobile devices, make hue slider bigger so it is easier to slide */
+@media (max-device-width: 480px) {
+    .sp-color { right: 40%; }
+    .sp-hue { left: 63%; }
+    .sp-fill { padding-top: 60%; }
+}
+
+.sp-dragger {
+    border-radius: 5px;
+    height: 5px;
+    width: 5px;
+    border: 1px solid white;
+    background: rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    position: absolute;
+}
+.sp-slider {
+    position: absolute;
+    top: 0;
+    cursor: pointer;
+    height: 3px;
+    left: 0px;
+    right: 0px;
+    background: white;
+    opacity: .5;
+    box-shadow: 0px 0px 5px black;
+    border-radius: 4px;
+}
+
+/* Basic display options (colors, fonts, global widths) */
+.sp-container {
+    border-radius: 5px;
+    background-color: #727272;
+    padding: 0;
+    box-shadow: 0px 0px 10px black;
+}
+.sp-container, .sp-container button, .sp-container input, .sp-color, .sp-hue
+{
+    font: normal 12px "Lucida Grande", "Lucida Sans Unicode", "Lucida Sans", Geneva, Verdana, sans-serif;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -ms-box-sizing: border-box;
+    box-sizing: border-box;
+}
+.sp-top
+{
+    margin-bottom: 3px;
+}
+.sp-color, .sp-hue
+{
+    border: solid 1px #666;
+}
+
+/* Input */
+.sp-input-container {
+    float:right;
+    width: 100px;
+    margin-bottom: 4px;
+}
+.sp-initial-disabled  .sp-input-container {
+    width: 100%;
+}
+.sp-input {
+    padding: 4px 5px;
+    margin: 0;
+    width: 100%;
+    background: transparent;
+    border-radius: 3px;
+    color: white;
+    background-color: #585757;
+    box-shadow: inset 0px 0px 7px black;
+}
+.sp-input:focus  {
+    border: 1px solid orange;
+}
+.sp-input.sp-validation-error
+{
+    border: 1px solid red;
+    background: #fdd;
+}
+.sp-picker-container , .sp-palette-container
+{
+    float:left;
+    position: relative;
+    padding: 4px;
+    padding-bottom: 300px;
+    margin-bottom: -290px;
+}
+.sp-picker-container
+{
+    width: 172px;
+}
+
+/* Palettes */
+.sp-palette-container
+{
+    border-right: solid 1px #ccc;
+}
+
+.sp-palette .sp-thumb-el {
+    display: block;
+    position:relative;
+    float:left;
+    width: 24px;
+    height: 15px;
+    margin: 3px;
+    cursor: pointer;
+    border:solid 2px transparent;
+}
+.sp-palette .sp-thumb-el:hover, .sp-palette .sp-thumb-el.sp-thumb-active {
+    border-color: orange;
+}
+.sp-thumb-el
+{
+    position:relative;
+}
+
+/* Initial */
+.sp-initial
+{
+    float: left;
+    border: solid 1px #333;
+}
+.sp-initial span {
+    width: 30px;
+    height: 25px;
+    border:none;
+    display:block;
+    float:left;
+    margin:0;
+}
+
+/* Buttons */
+.sp-button-container {
+    float: right;
+}
+
+/* Replacer (the little preview div that shows up instead of the <input>) */
+.sp-replacer {
+    display: inline-block;
+    border-radius: 4px;
+    vertical-align: top;
+    color: #C7B9AA;
+    border: none;
+    line-height: 30px;
+    font-size: 14px;
+    background: -webkit-linear-gradient(#747474, #4D4D4D);
+    background: -moz-linear-gradient(#747474, #4D4D4D);
+    background: -o-linear-gradient(#747474, #4D4D4D);
+    padding:2px 3px;
+}
+.sp-replacer:hover, .sp-replacer.sp-active {
+    border-color: #F0C49B;
+    color: #111;
+}
+.sp-preview
+{
+    position:relative;
+    width:40px;
+    height: 15px;
+    float:left;
+    z-index: 0;
+}
+
+.sp-palette
+{
+    *width: 220px;
+    max-width: 220px;
+}
+.sp-palette .sp-thumb-el
+{
+    width:16px;
+    height: 16px;
+    margin:2px 1px;
+    border: solid 1px #d0d0d0;
+}
+
+.sp-container
+{
+    padding-bottom:0;
+}
+
+
+/* Buttons: http://hellohappy.org/css3-buttons/ */
+.sp-container button {
+  background-color: #eeeeee;
+  background-image: -webkit-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -moz-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -ms-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -o-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: -ms-linear-gradient(top, #eeeeee, #cccccc);
+  background-image: linear-gradient(to bottom, #eeeeee, #cccccc);
+  border: 1px solid #ccc;
+  border-bottom: 1px solid #bbb;
+  border-radius: 3px;
+  color: #333;
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 4px;
+  text-align: center;
+  text-shadow: 0 1px 0 #eee;
+  vertical-align: middle;
+}
+.sp-container button:hover {
+    background-color: #dddddd;
+    background-image: -webkit-linear-gradient(top, #dddddd, #bbbbbb);
+    background-image: -moz-linear-gradient(top, #dddddd, #bbbbbb);
+    background-image: -ms-linear-gradient(top, #dddddd, #bbbbbb);
+    background-image: -o-linear-gradient(top, #dddddd, #bbbbbb);
+    background-image: -ms-linear-gradient(top, #dddddd, #bbbbbb);
+    background-image: linear-gradient(to bottom, #dddddd, #bbbbbb);
+    border: 1px solid #bbb;
+    border-bottom: 1px solid #999;
+    cursor: pointer;
+    text-shadow: 0 1px 0 #ddd;
+}
+.sp-container button:active {
+    border: 1px solid #aaa;
+    border-bottom: 1px solid #888;
+    -webkit-box-shadow: inset 0 0 5px 2px #aaaaaa, 0 1px 0 0 #eeeeee;
+    -moz-box-shadow: inset 0 0 5px 2px #aaaaaa, 0 1px 0 0 #eeeeee;
+    -ms-box-shadow: inset 0 0 5px 2px #aaaaaa, 0 1px 0 0 #eeeeee;
+    -o-box-shadow: inset 0 0 5px 2px #aaaaaa, 0 1px 0 0 #eeeeee;
+    box-shadow: inset 0 0 5px 2px #aaaaaa, 0 1px 0 0 #eeeeee;
+}
+.sp-cancel
+{
+    font-size: 11px;
+    color: #d93f3f !important;
+    margin:0;
+    padding:2px;
+    margin-right: 5px;
+    vertical-align: middle;
+    text-decoration:none;
+
+}
+.sp-cancel:hover
+{
+    color: #d93f3f !important;
+    text-decoration: underline;
+}
+
+
+.sp-palette span:hover, .sp-palette span.sp-thumb-active
+{
+    border-color: #000;
+}
+
+.sp-preview, .sp-alpha, .sp-thumb-el
+{
+    position:relative;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAIAAADZF8uwAAAAGUlEQVQYV2M4gwH+YwCGIasIUwhT25BVBADtzYNYrHvv4gAAAABJRU5ErkJggg==);
+}
+.sp-preview-inner, .sp-alpha-inner, .sp-thumb-inner
+{
+    display:block;
+    position:absolute;
+    top:0;left:0;bottom:0;right:0;
+    box-shadow: inset 0px 0px 5px black;
+}
+
+.sp-palette .sp-thumb-light.sp-thumb-active .sp-thumb-inner
+{
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAIVJREFUeNpiYBhsgJFMffxAXABlN5JruT4Q3wfi/0DsT64h8UD8HmpIPCWG/KemIfOJCUB+Aoacx6EGBZyHBqI+WsDCwuQ9mhxeg2A210Ntfo8klk9sOMijaURm7yc1UP2RNCMbKE9ODK1HM6iegYLkfx8pligC9lCD7KmRof0ZhjQACDAAceovrtpVBRkAAAAASUVORK5CYII=);
+}
+
+.sp-palette .sp-thumb-dark.sp-thumb-active .sp-thumb-inner
+{
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABIAAAASCAYAAABWzo5XAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAadEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41LjEwMPRyoQAAAMdJREFUOE+tkgsNwzAMRMugEAahEAahEAZhEAqlEAZhEAohEAYh81X2dIm8fKpEspLGvudPOsUYpxE2BIJCroJmEW9qJ+MKaBFhEMNabSy9oIcIPwrB+afvAUFoK4H0tMaQ3XtlrggDhOVVMuT4E5MMG0FBbCEYzjYT7OxLEvIHQLY2zWwQ3D+9luyOQTfKDiFD3iUIfPk8VqrKjgAiSfGFPecrg6HN6m/iBcwiDAo7WiBeawa+Kwh7tZoSCGLMqwlSAzVDhoK+6vH4G0P5wdkAAAAASUVORK5CYII=);
 }/*UI组件的样式*/
 
 @charset 'utf-8';
@@ -1233,7 +1528,6 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 	-webkit-animation: progress-bar-stripes 2s linear infinite;
 	/*-webkit-transition: width 0.3s linear;*/
 	background-color:#01273A;
-	background-image:-webkit-linear-gradient(45deg, rgba(255, 255, 255, 0.15) 25%, transparent 25%, transparent 50%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.15) 75%, transparent 75%, transparent);
 	background-size: 40px 40px;
 	position: absolute;
 	left:0px;
@@ -1245,21 +1539,12 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 	box-shadow: 1px 1px 3px black;
 
 }
-/*from bootstrap*/
-@-webkit-keyframes progress-bar-stripes {
-  from {
-    background-position: 0 0;
-  }
-  to {
-    background-position: 40px 0;
-  }
- }
 
 .lblend-float label{
 	min-width:70px;
 	float:left;
 	font-size:12px;
-	color:#CACACA;
+	color:#272727;
 	position:relative;
 	font-family: Arial;
 	font-weight: bold;
@@ -1376,13 +1661,34 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 	box-sizing:border-box;
 	box-shadow: inset 0px 0px 3px black;
 }
-/*Texture和Video编辑组件*/
-.lblend-texture,
-.lblend-video{
+/*Texture组件*/
+.lblend-texture{
+	box-sizing:border-box;
 	margin:5px;
 }
-.lblend-texture-popup img,
-.lblend-video-popup video{
+.lblend-texture label{
+	line-height: 20px;
+	color:white;
+	display: inline-block;
+	box-sizing: border-box;
+	text-align: left;
+}
+.lblend-texture .lblend-texture-path{
+	margin-left: 10px;
+	background-color: #AFBFD6;
+	padding: 1px 3px;
+	border-radius: 3px;
+	cursor:pointer;
+}
+.lblend-texture-popup{
+	position:absolute;
+	z-index: 10;
+	background-color: #181818;
+	border-radius: 5px;
+	box-shadow: 0px 0px 3px black;
+	padding:5px;
+}
+.lblend-texture-popup img{
 	width:180px;
 	height:180px;
 	background-color: #EEE;
@@ -1395,14 +1701,6 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 	 -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
 	background-size: 20px 20px;
 }
-.lblend-texture-popup{
-	position:absolute;
-	z-index: 10;
-	background-color: #494949;
-	border-radius: 5px;
-	box-shadow: 0px 0px 3px black;
-	padding:5px;
-}
 /*color组件*/
 .lblend-color{
 	margin:5px;
@@ -1414,12 +1712,12 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 	vertical-align: top;	/*label和div在一块的时候怎么对齐？*/
 }
 .lblend-color-picker{
-	border: 3px solid grey;
+/*	border: 3px solid grey;
 	border-radius: 3px;
 	width:60px;
-	height:15px;
+	height:15px;*/
 	display:inline-block;
-	position: relative;
+/*	position: relative;*/
 }
 /*Layer组件*/
 .lblend-layer{
@@ -1510,7 +1808,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 .lblend-tab-tabs li.active{
 	background-color: #404040;
 	color:white;
-	box-shadow: 0px -2px 3px black;
+	box-shadow: 0px -1px 3px black;
 	/*margin-top:-5px;*/
 }
 .lblend-tab>.lblend-list{
@@ -1663,7 +1961,7 @@ div.CodeMirror span.CodeMirror-nonmatchingbracket {color: #f22;}
 .lblend-common-button{
 	border-radius: 4px;
 	vertical-align: top;
-	color: #C7B9AA;
+	color: white;
 	border: none;
 	line-height: 30px;
 	font-size: 14px;

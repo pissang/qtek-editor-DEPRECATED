@@ -149,13 +149,34 @@
 	box-sizing:border-box;
 	box-shadow: inset 0px 0px 3px black;
 }
-/*Texture和Video编辑组件*/
-.lblend-texture,
-.lblend-video{
+/*Texture组件*/
+.lblend-texture{
+	box-sizing:border-box;
 	margin:5px;
 }
-.lblend-texture-popup img,
-.lblend-video-popup video{
+.lblend-texture label{
+	line-height: 20px;
+	color:white;
+	display: inline-block;
+	box-sizing: border-box;
+	text-align: left;
+}
+.lblend-texture .lblend-texture-path{
+	margin-left: 10px;
+	background-color: #AFBFD6;
+	padding: 1px 3px;
+	border-radius: 3px;
+	cursor:pointer;
+}
+.lblend-texture-popup{
+	position:absolute;
+	z-index: 10;
+	background-color: #181818;
+	border-radius: 5px;
+	box-shadow: 0px 0px 3px black;
+	padding:5px;
+}
+.lblend-texture-popup img{
 	width:180px;
 	height:180px;
 	background-color: #EEE;
@@ -167,14 +188,6 @@
 	background-image: -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black), 
 	 -webkit-linear-gradient(45deg, black 25%, transparent 25%, transparent 75%, black 75%, black);
 	background-size: 20px 20px;
-}
-.lblend-texture-popup{
-	position:absolute;
-	z-index: 10;
-	background-color: #494949;
-	border-radius: 5px;
-	box-shadow: 0px 0px 3px black;
-	padding:5px;
 }
 /*color组件*/
 .lblend-color{
@@ -283,7 +296,7 @@
 .lblend-tab-tabs li.active{
 	background-color: #404040;
 	color:white;
-	box-shadow: 0px -2px 3px black;
+	box-shadow: 0px -1px 3px black;
 	/*margin-top:-5px;*/
 }
 .lblend-tab>.lblend-list{
@@ -436,7 +449,7 @@
 .lblend-common-button{
 	border-radius: 4px;
 	vertical-align: top;
-	color: #C7B9AA;
+	color: white;
 	border: none;
 	line-height: 30px;
 	font-size: 14px;

@@ -50,6 +50,9 @@ define(function(require, exports, module){
 			getConfig : function(){
 				return getConfig(this.data );
 			},
+			getThumb : function(size){
+				return getThumb(this.data, size);
+			},
 			getPath : function(){
 				if( this.host){
 					return this.host.getPath();
@@ -134,6 +137,18 @@ define(function(require, exports, module){
 		return texture.clone();
 	}
 
+	function getThumb( texture, size ){
+		if( texture instanceof THREE.DataTexture ||
+			texture instanceof THREE.CompressedTexture){
+			return;
+		}
+		var canvas = document.createElement('canvas');
+		canvas.width = size;
+		canvas.height = size;
+		canvas.getContext('2d').drawImage(texture.image, 0, 0, size, size);
+		return canvas.toDataURL();
+	}
+
 	function getConfig( texture ){
 		return {
 			'Texture Asset' : {
@@ -190,7 +205,7 @@ define(function(require, exports, module){
 						type : 'select',
 						value : texture.minFilter,
 						options : filterOptions,
-						onchange : function(){
+						onchange : function(value){
 							texture.minFilter = value;
 						}
 					},

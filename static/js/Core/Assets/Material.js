@@ -261,7 +261,7 @@ define(function(require, exports, module){
 					}
 
 					// update Shader Asset Part
-					updatePartial && updatePartial( 'Shader Asset' );
+					updatePartial && updatePartial( 'Shader' );
 				}
 
 			},
@@ -285,6 +285,7 @@ define(function(require, exports, module){
 		}
 
 		var shaderProps = {};
+
 		_.each(material.shader.uniforms, function(u, name){
 			
 			if( ! u.configurable){
@@ -298,19 +299,53 @@ define(function(require, exports, module){
 				case 'f':
 					prop.type = 'float';
 					prop.onchange = function(value){
+
 						material.uniforms[name].value = value;
 					}
 					break;
 				case 't':
 					prop.type = 'texture';
+					var tex = material.uniforms[name].value;
+					if( ! tex){
+						prop.value = '';
+					}
+					else if( ! tex.host){
+						console.warn('texture '+tex.name+' is not in the project');
+						return;
+					}
+					else{
+						prop.value = tex.host.getPath();	// texture path in the project
+					}
+
 					prop.onchange = function(value){
+						// delete the texture when the value is ''
+						if( ! value){
+							material.uniforms[name].value = null;
+								if(name == 'map' ||
+								name == 'lightMap' ||
+								name == 'specularMap' ||
+								name == 'envMap'){
 
+								material[name] = false; 
+								material.needsUpdate = true;
+							}
+						}
+						else{
+							var texAsset = FS.root.find(value).data;
+							if( ! texAsset){
+								console.warn('texture '+value+' is not in the project');
+								return;
+							}
+							material.uniforms[name].value = tex.data;
 
-						if(name == 'map' ||
-							name == 'lightMap' ||
-							name == 'specularMap' ||
-							name == 'envMap'){
-							material[name] = true;
+							if(name == 'map' ||
+								name == 'lightMap' ||
+								name == 'specularMap' ||
+								name == 'envMap'){
+
+								material[name] = true;
+								material.needsUpdate = true;
+							}
 						}
 					}
 					break;
@@ -344,7 +379,7 @@ define(function(require, exports, module){
 				sub : props
 			},
 
-			'Shader Asset' : {
+			'Shader' : {
 				type : 'layer',
 				sub : shaderProps
 			}

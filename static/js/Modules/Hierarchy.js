@@ -57,6 +57,10 @@ define(function(require, exports, module){
 			var path = Assets.Util.getSceneNodePath(parent);
 			var treeNode = treeView.find(path);
 			
+			if( ! treeNode){
+				console.warn('node '+path+' not exist in the scene tree');
+				return;
+			}
 			// recursive add 
 			function walk(sceneNode, treeParent){
 				var treeNode = createTreeNode(sceneNode);
@@ -93,7 +97,12 @@ define(function(require, exports, module){
 					}
 				}, 
 				accepted : function(json){
-					var node = FS.root.find(json.dataSource).data.getInstance();
+					var fsNode = FS.root.find(json.dataSource);
+					if( ! fsNode){
+						console.warn('file '+json.dataSource+' is not in the project');
+						return;
+					}
+					var node = fsNode.data.getInstance();
 					var parentNode = Assets.Util.findSceneNode( this.getPath(), scene );
 					hub.trigger('add:node', node, parentNode );
 				}
@@ -104,12 +113,21 @@ define(function(require, exports, module){
 	function initTreeView(){
 
 		treeView.on('moved:node', function(parent, parentPrev, node){
-			var sceneNode = Assets.Util.findSceneNode( parentPrev.getPath() + '/' + node.name, scene );
+			var nodePath = parentPrev.getPath() + '/' + node.name;
+			var sceneNode = Assets.Util.findSceneNode( nodePath, scene );
+			if( ! sceneNode){
+				console.warn('scene node '+ nodePath + ' not existed');
+				return;
+			}
 			hub.trigger('add:node', sceneNode, parent.getPath(), true );
 		})
 
 		treeView.on('selected:node', function(node){
 			var sceneNode = Assets.Util.findSceneNode( node.getPath(), scene);
+			if( ! sceneNode){
+				console.warn('scnen node'+nodePath+' not existed');
+				return;
+			}
 			hub.trigger('select:node', sceneNode );
 		})
 	}

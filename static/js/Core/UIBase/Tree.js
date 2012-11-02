@@ -46,14 +46,20 @@ define(function(require, exports, module){
 
 		var html = _.template('<li class="lblend-tree-file">\
 						<span class="lblend-tree-title" draggable="true">\
-							<span class="{{icon}}"></span>\
+							<span class="lblend-tree-icon"></span>\
 							<a>{{name}}</a>\
 						</span>\
 					</li>', {
-						icon : this.icon,
 						name : this.name
 					})
 		var $el = $(html);
+		if(_.isString(this.icon)){
+			$el.find('.lblend-tree-icon').addClass(this.icon);
+		}else{
+			// an image or something else
+			$el.find('.lblend-tree-icon').append(this.icon);
+		}
+
 		this.$el = $el;
 
 		$el.data('path', this.getPath() );
@@ -238,18 +244,24 @@ define(function(require, exports, module){
 		var html = _.template('<li class="lblend-tree-folder">\
 						<span class="lblend-tree-title" draggable="true">\
 							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
-							<span class="{{icon}}"></span>\
+							<span class="lblend-tree-icon"></span>\
 							<a>{{name}}</a>\
 						</span>\
 						<ul>\
 						</ul>\
 					</li>', {
-						icon : this.icon,
 						name : this.name
 					})
 
 		var $el = $(html),
 			$ul = $el.children('ul');
+
+		if(_.isString(this.icon)){
+			$el.find('.lblend-tree-icon').addClass(this.icon);
+		}else{
+			// an image or something else
+			$el.find('.lblend-tree-icon').append(this.icon);
+		}
 
 		$el.data('path', this.getPath());
 

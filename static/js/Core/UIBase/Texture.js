@@ -12,7 +12,7 @@ define(function(require, exports, module){
 	var Model = Backbone.Model.extend({
 		defaults : {
 			name : '',
-			filename : 'none',	//文件位置
+			path : 'none',	//文件位置
 			texture : null	//THREE.Texture
 		}
 	});
@@ -25,7 +25,7 @@ define(function(require, exports, module){
 
 		className : 'lblend-texture',
 
-		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-filename" data-html="model.filename"></span>',
+		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-path" data-html="model.path"></span>',
 
 		popupTemplate : '<div class="lblend-texture-popup"><div class="lblend-texture-popup-image"></div></div>',
 
@@ -37,7 +37,7 @@ define(function(require, exports, module){
 		textureID : 0,
 
 		events : {
-			'click .lblend-texture-filename' : 'toggleImage'
+			'click .lblend-texture-path' : 'toggleImage'
 		},
 		
 		initialize : function(){
@@ -80,8 +80,8 @@ define(function(require, exports, module){
 				var offset = this.$el.offset();
 
 				this.$popup.css({
-					left : offset.left,
-					top : offset.top+this.$el.height()+2
+					left : offset.left+20,
+					top : offset.top+this.$el.height()+5
 				})
 				$(document.body).append(this.$popup);
 			}

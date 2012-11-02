@@ -93,7 +93,16 @@ define(function(require, exports, module){
 				treeNode.icon = 'icon-project-folder icon-small';
 			}else{
 				var treeNode = new UIBase.Tree.File(node.name);
-				treeNode.icon = 'icon-project-file icon-small';
+
+				if( node.data.getThumb ){
+					// use asset thumb
+					var base64Src = node.data.getThumb(14);
+					var image = new Image();
+					image.src = base64Src;
+					treeNode.icon = image;
+				}else{
+					treeNode.icon = 'icon-project-file icon-small';
+				}
 			}
 			if(node.data){
 				treeNode.dataSource = node.getPath();									
@@ -103,7 +112,12 @@ define(function(require, exports, module){
 		})
 		FS.root.on('moved:node', function(parent, parentPrev, node){
 			
-			var treeNode = treeView.find(parentPrev.getPath() + '/' + node.name);
+			var nodePrevPath = parentPrev.getPath() + '/' + node.name;
+			var treeNode = treeView.find( nodePrevPath );
+			if( ! treeNode){
+				console.warn( 'node '+nodePrevPath+' not exist in the project tree');
+				return;
+			}
 			
 			treeView.find( parent.getPath() ).add( treeNode, true);
 		})
@@ -113,7 +127,12 @@ define(function(require, exports, module){
 		})
 		FS.root.on('updated:name', function(node, name){
 
-			treeView.find(node.getPath()).setName(name, true);
+			var treeNode = treeView.find(node.getPath());
+			if( ! treeNode){
+				console.warn( 'node '+node.getPath()+' not exist in the project tree');
+				return;
+			}
+			treeNode.setName(name, true);
 		})
 		treeView.on('added:node', function(parent, node){
 
@@ -121,7 +140,12 @@ define(function(require, exports, module){
 		})
 		treeView.on('moved:node', function(parent, parentPrev, node){
 
-			var fsNode = FS.root.find(parentPrev.getPath() + '/' + node.name);
+			var nodePrevPath = parentPrev.getPath() + '/' + node.name;
+			var fsNode = FS.root.find(nodePrevPath);
+			if( ! fsNode){
+				console.warn( 'file '+nodePrevPath+' not exist in the project');
+				return;
+			}
 	
 			FS.root.find(parent.getPath()).add(fsNode, true);
 		})
@@ -130,6 +154,10 @@ define(function(require, exports, module){
 		})
 		treeView.on('click:node', function(node){
 			var fsNode = FS.root.find( node.getPath() );
+			if( ! fsNode){
+				console.warn( 'file '+nodePrevPath+' not exist in the project');
+				return;
+			}
 			// inspect asset properties
 			if(fsNode.data){
 				hub.trigger('inspect:object', fsNode.data.getConfig() );

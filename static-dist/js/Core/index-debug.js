@@ -384,38 +384,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 	function create(mat){
 
 		var name = mat && mat.name;
-		var newMat;
-		// tranform other material types to shader material
-		if( ! mat.shader ){
-			if( mat instanceof THREE.MeshPhongMaterial){
-				var shader = ShaderAsset.buildin['buildin-phong'].getInstance();
-				newMat = new THREE.ShaderMaterial;
-				bindShader(newMat, shader);
-			}
-			else if( mat instanceof THREE.MeshLambertMaterial){
-				var shader = ShaderAsset.buildin['buildin-lambert'].getInstance();
-				newMat = new THREE.ShaderMaterial;
-				bindShader(newMat, shader);
-			}
-			else if( mat instanceof THREE.MeshBasicMaterial){
-				var shader = ShaderAsset.buildin['buildin-basic'].getInstance();
-				newMat = new THREE.ShaderMaterial;
-				bindShader(newMat, shader);
-			}
-			else if(mat instanceof THREE.ShaderMaterial){
-				newMat = mat;
-				// create a shader asset;
-				var shaderAsset = ShaderAsset.create(new ShaderAsset.Shader({
-					uniforms : mat.uniforms,
-					fragmentShader : mat.fragmentShader,
-					vertexShader : mat.vertexShader
-				}))
-				bindShader(mat, shaderAsset.data);
-			}
-			newMat.name = mat.name;
-		}else{
-			newMat = mat;
-		}
+		mat = convertMaterial(mat);
 
 		var ret = {
 
@@ -423,7 +392,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 
 			name : name || 'Material_' + guid++,
 
-			data : newMat || null,
+			data : mat || null,
 
 			host : null,
 
@@ -462,15 +431,123 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 			}
 		}
 
-		newMat && (newMat.host = ret);
+		mat && (mat.host = ret);
 
 		return ret;
 	}
 
 	// we drop all the material types in THREE.js and leave a ShaderMaterial
 	// to manage shaders, to keep material management more clearly;
+	var uniformPropMap = {
+		'phong' : {
+			'diffuse' : 'color',
+			'ambient' : 'ambient',
+			'emissive' : 'emissive',
+			'specular' : 'specular',
+			'shininess' : 'shininess',
+			'map' : 'map',
+			'lightMap' : 'lightMap',
+			'bumpMap' : 'bumpMap',
+			'bumpScale' : 'bumpScale',
+			'normalMap' : 'normalMap',
+			'normalScale' : 'normalScale',
+			'specularMap' : 'specularMap',
+			'envMap' : 'envMap',
+			'reflectivity' : 'reflectivity',
+			'refractionRatio' : 'refractionRatio'
+		},
+		'lambert' : {
+			'color' : 'color',
+			'ambient' : 'ambient',
+			'emissive' : 'emissive',
+			'map' : 'map',
+			'lightMap' : 'lightMap',
+			'specularMap' : 'specularMap',
+			'envMap' : 'envMap',
+			'reflectivity' : 'reflectivity',
+			'refractionRatio' : 'refractionRatio'
+		},
+		'basic' : {
+			'color' : 'color',
+			'map' : 'map',
+			'lightMap' : 'lightMap',
+			'specularMap' : 'specularMap',
+			'envMap' : 'envMap',
+			'reflectivity' : 'reflectivity',
+			'refractionRatio' : 'refractionRatio'
+		}
+	}
+
+	function convertMaterial(mat){
+		var newMat;
+		// convert other material types to shader material
+		if( ! mat.shader ){
+			if( mat instanceof THREE.MeshPhongMaterial){
+				var shader = ShaderAsset.buildin['buildin-phong'].getInstance();
+				_.each(uniformPropMap.phong, function(pName, uName){
+					shader.uniforms[uName].value = mat[pName]
+				})
+
+				newMat = new THREE.ShaderMaterial;
+				newMat.map = mat.map ? true : false;
+				newMat.lightMap = mat.lightMap ? true : false;
+				newMat.specularMap = mat.specularMap ? true : false;
+				newMat.bumpMap = mat.bumpMap ? true : false;
+				newMat.normalMap = mat.normalMap ? true : false;
+
+				bindShader(newMat, shader);
+			}
+			else if( mat instanceof THREE.MeshLambertMaterial){
+				var shader = ShaderAsset.buildin['buildin-lambert'].getInstance();
+				_.each(uniformPropMap.lambert, function(pName, uName){
+					shader.uniforms[uName].value = mat[pName]
+				})
+				newMat = new THREE.ShaderMaterial;
+				newMat.map = mat.map ? true : false;
+				newMat.lightMap = mat.lightMap ? true : false;
+				newMat.specularMap = mat.specularMap ? true : false;
+				
+				bindShader(newMat, shader);
+			}
+			else if( mat instanceof THREE.MeshBasicMaterial){
+				var shader = ShaderAsset.buildin['buildin-basic'].getInstance();
+				_.each(uniformPropMap.basic, function(pName, uName){
+					shader.uniforms[uName].value = mat[pName]
+				})
+				newMat = new THREE.ShaderMaterial;
+				newMat.map = mat.map ? true : false;
+				newMat.lightMap = mat.lightMap ? true : false;
+				newMat.specularMap = mat.specularMap ? true : false;
+				
+				bindShader(newMat, shader);
+			}
+			else if(mat instanceof THREE.ShaderMaterial){
+				newMat = mat;
+				// create a shader asset;
+				var shaderAsset = ShaderAsset.create(new ShaderAsset.Shader({
+					uniforms : mat.uniforms,
+					fragmentShader : mat.fragmentShader,
+					vertexShader : mat.vertexShader
+				}))
+				bindShader(mat, shaderAsset.data);
+			}
+			//need to set the light true so the renderer will set the light params in as uniform
+			//whats the fuck
+			newMat.lights = true;	
+			newMat.name = mat.name;
+		}else{
+			newMat = mat;
+		}
+		return newMat;
+	}
+
 	function read(m){
 
+		var material = new THREE.ShaderMaterial;
+		var shader = FS.root.find(m.shader);
+		if(shader){
+			bindShader( material, shader);
+		}
 
 		return material;
 	}
@@ -553,23 +630,127 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 					}
 
 					// update Shader Asset Part
-					updatePartial && updatePartial( 'Shader Asset' );
+					updatePartial && updatePartial( 'Shader' );
 				}
 
+			},
+			'opacity' : {
+				type : 'float',
+				min : 0,
+				max : 1,
+				step : 0.005,
+				value : material.opacity,
+				onchange : function(value){
+					material.opacity = value;
+				}
+			},
+			'transparent' : {
+				type : 'boolean',
+				value : material.transparent,
+				onchange : function(value){
+					material.transparent = value;
+				}		
 			}
 		}
 
+		var shaderProps = {};
+
+		_.each(material.shader.uniforms, function(u, name){
+			
+			if( ! u.configurable){
+				return;
+			}
+
+			var prop = {};
+			_.extend(prop, u);
+
+			switch(u.type){
+				case 'f':
+					prop.type = 'float';
+					prop.onchange = function(value){
+
+						material.uniforms[name].value = value;
+					}
+					break;
+				case 't':
+					prop.type = 'texture';
+					var tex = material.uniforms[name].value;
+					if( ! tex){
+						prop.value = '';
+					}
+					else if( ! tex.host){
+						console.warn('texture '+tex.name+' is not in the project');
+						return;
+					}
+					else{
+						prop.value = tex.host.getPath();	// texture path in the project
+					}
+
+					prop.onchange = function(value){
+						// delete the texture when the value is ''
+						if( ! value){
+							material.uniforms[name].value = null;
+								if(name == 'map' ||
+								name == 'lightMap' ||
+								name == 'specularMap' ||
+								name == 'envMap'){
+
+								material[name] = false; 
+								material.needsUpdate = true;
+							}
+						}
+						else{
+							var texAsset = FS.root.find(value).data;
+							if( ! texAsset){
+								console.warn('texture '+value+' is not in the project');
+								return;
+							}
+							material.uniforms[name].value = tex.data;
+
+							if(name == 'map' ||
+								name == 'lightMap' ||
+								name == 'specularMap' ||
+								name == 'envMap'){
+
+								material[name] = true;
+								material.needsUpdate = true;
+							}
+						}
+					}
+					break;
+				case 'v2':
+					prop.value = _.pick(u.value, 'x', 'y');
+				case 'v3':
+					prop.value = _.pick(u.value, 'x', 'y', 'z');
+				case 'v4':
+					prop.value = _.pick(u.value, 'x', 'y', 'z', 'w');
+					prop.type = 'vector';
+					prop.onchange = function(key, value){
+						material.uniforms[name].value[key] = value;
+					}
+					break;
+				case 'c':
+					prop.type = 'color';
+					prop.value = u.value.getHex();
+					prop.onchange = function(value){
+						material.uniforms[name].value.setHex(value);
+					}
+
+					break;
+			}
+
+			shaderProps[name] = prop;
+		})
+		
 		return {
 			'Material Asset' : {
 				type : 'layer',
 				sub : props
 			},
 
-			'Shader Asset' : {
+			'Shader' : {
 				type : 'layer',
-				sub : {
-
-				}
+				sub : shaderProps
 			}
 		}
 	}
@@ -589,6 +770,9 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 // Basic Shader Asset
 //
 // Shader Asset is part of Material Asset
+// the uniforms in Shader Assets has no specific value,
+// it defines the config of the each uniform, like min value, max value and so on
+// only when it is attached to the material, the values will be used;
 //========================
 define("Core/Assets/Shader-debug", [], function(require, exports, module){
 
@@ -610,10 +794,13 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 		// not clone the textures;
 		_.each(this.uniforms, function(u, name){
 
-			clonedUniform[name] = {
-				type : u.type,
-				value : self.cloneValue( u.value )
-			}
+			clonedUniform[name] = {};
+			_.extend(clonedUniform[name], u);
+
+			// deep clone the value except texture
+			// to keep the unfiorm clean
+			clonedUniform[name].value = self.cloneValue( u.value );
+
 		})
 		return new Shader({
 			uniforms : clonedUniform,
@@ -628,7 +815,7 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 			_.each(v, function(item, idx){
 				clonedArray[idx] = self.cloneValue(item);
 			})
-			return clonedArray
+			return clonedArray;
 		}
 		else if (v instanceof THREE.Color ||
 			 v instanceof THREE.Vector2 ||
@@ -745,6 +932,10 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 		_.each( str.uniforms, function(uniform, key){
 
 			var value;
+
+			uniforms[key] = {};
+			_.extend(uniforms[key], uniform);
+
 			switch( uniform.type){
 				case 'f':
 				case 'i':
@@ -819,10 +1010,8 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 					value = 0;
 			}
 
-			unfiorms[key] = {
-				type : uniform.type,
-				value : value
-			}
+			uniforms[key].value = value;
+
 		} )
 
 		var shader = new Shader({
@@ -843,6 +1032,10 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 		json.uniforms = {};
 
 		_.each( shader.uniforms, function(uniform, key){
+
+			json.uniforms[key] = {};
+			_.extend(json.uniforms[key], uniform);
+
 			var value;
 			switch( uniform.type ){
 				case 'f':
@@ -905,13 +1098,10 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 					value = uniform.value.getHex();
 					break;
 				default:
-					value = 0;	//and so on.............
+					value = 0;
 			}
 
-			json.uniforms[key] = {
-				type : uniform.type,
-				value : value
-			}
+			json.uniforms[key].value = value;
 		} )
 
 		json['vertexShader'] = shader.vertexShader;
@@ -971,13 +1161,84 @@ define("Core/Assets/Shader-debug", [], function(require, exports, module){
 	basicShader.name = 'buildin-basic';
 	exports.buildin['buildin-lambert'] = exports.create( basicShader );
 	
+	// extend the build in shader configs
+	basicShader.uniforms['diffuse'].configurable = true;
+	basicShader.uniforms['map'].configurable = true;
+	basicShader.uniforms['lightMap'].configurable = true;
+	basicShader.uniforms['envMap'].configurable = true;
+	_.extend(basicShader.uniforms['reflectivity'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	});
+	_.extend(basicShader.uniforms['refractionRatio'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	})
+
 	var phongShader = new Shader( THREE.ShaderLib.phong );
 	phongShader.name = 'buildin-phong';
 	exports.buildin['buildin-phong'] = exports.create( phongShader );
 	
+	// extend the build in shader configs
+	phongShader.uniforms['diffuse'].configurable = true;
+	phongShader.uniforms['ambient'].configurable = true;
+	phongShader.uniforms['emissive'].configurable = true;
+	phongShader.uniforms['specular'].configurable = true;
+
+	phongShader.uniforms['map'].configurable = true;
+	phongShader.uniforms['lightMap'].configurable = true;
+	phongShader.uniforms['normalMap'].configurable = true;
+	_.extend(phongShader.uniforms['normalScale'], {
+		min : 0,
+		max : 10.0,
+		step : 0.005
+	});
+	phongShader.uniforms['envMap'].configurable = true;
+	_.extend(phongShader.uniforms['reflectivity'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	});
+	_.extend(phongShader.uniforms['refractionRatio'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	})
+	_.extend(phongShader.uniforms['shininess'], {
+		min : 0,
+		max : 1000.0,
+		step : 2,
+		configurable : true	//enable config
+	})
+
 	var lambertShader = new Shader( THREE.ShaderLib.lambert);
 	lambertShader.name = 'buildin-lambert';
 	exports.buildin['buildin-lambert'] = exports.create( lambertShader );
+	// extend the build in shader configs
+	lambertShader.uniforms['diffuse'].configurable = true;
+	lambertShader.uniforms['ambient'].configurable = true;
+	lambertShader.uniforms['emissive'].configurable = true;
+
+	lambertShader.uniforms['map'].configurable = true;
+	lambertShader.uniforms['lightMap'].configurable = true;
+	lambertShader.uniforms['envMap'].configurable = true;
+
+	_.extend(lambertShader.uniforms['reflectivity'], {
+		min : 0,
+		max : 1.0,
+		step : 0.01
+	});
+	_.extend(lambertShader.uniforms['refractionRatio'], {
+		min : 0,
+		max : 1.0,
+		step : 0.01
+	})
 })
 
 //=====================
@@ -1559,6 +1820,9 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 			getConfig : function(){
 				return getConfig(this.data );
 			},
+			getThumb : function(size){
+				return getThumb(this.data, size);
+			},
 			getPath : function(){
 				if( this.host){
 					return this.host.getPath();
@@ -1643,6 +1907,18 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 		return texture.clone();
 	}
 
+	function getThumb( texture, size ){
+		if( texture instanceof THREE.DataTexture ||
+			texture instanceof THREE.CompressedTexture){
+			return;
+		}
+		var canvas = document.createElement('canvas');
+		canvas.width = size;
+		canvas.height = size;
+		canvas.getContext('2d').drawImage(texture.image, 0, 0, size, size);
+		return canvas.toDataURL();
+	}
+
 	function getConfig( texture ){
 		return {
 			'Texture Asset' : {
@@ -1699,7 +1975,7 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 						type : 'select',
 						value : texture.minFilter,
 						options : filterOptions,
-						onchange : function(){
+						onchange : function(value){
 							texture.minFilter = value;
 						}
 					},
@@ -2280,9 +2556,17 @@ define("Core/Assets/Importer/Collada-debug", ["../Geometry-debug", "../Prefab-de
 
 			// create material asset file
 			var matFolder = folder.createFolder('materials');
-			_.each(materials, function(material){
+			_.each(materials, function(material, name){
 				var matAsset = MaterialAsset.create( material );
 				var file = matFolder.createFile(matAsset.name, matAsset);
+				
+				materials[name] = matAsset.data;
+			})
+			// the material has to be reseted
+			root.traverse(function(_node){
+				if(_node.material){
+					_node.material = materials[_node.material.name];
+				}
 			})
 			// create prefab asset file
 			var prefab = PrefabAsset.create( root );
@@ -2345,11 +2629,12 @@ define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug
 					return file.data.getInstance();
 				}
 			})
-			materialList.push( material );
 			//create asset;
 			var matAsset = MaterialAsset.create( material );
 			var file = matFolder.createFile(matAsset.name, matAsset);
-
+			// the material has been tranformed to Shader Material
+			// in the MaterialAsset
+			materialList.push( matAsset.data );
 		})
 		if( ! json.buffers ){
 			jsonLoader.createModel(json, function(geo){
@@ -2541,9 +2826,12 @@ define("Core/Assets/Importer/Image-debug", ["../Texture-debug"], function(requir
 
 	var TextureAsset = require('../Texture-debug');
 
-	exports.import = function(name, data, folder){
+	exports.import = function(name, data, folder, callback){
 
 		var image = new Image;
+		image.onload = function(){
+			callback && callback(texAsset);
+		}
 		image.src = data;
 
 		var texture = new THREE.Texture(image);
@@ -2554,7 +2842,6 @@ define("Core/Assets/Importer/Image-debug", ["../Texture-debug"], function(requir
 
 		texFolder.createFile(texAsset.name, texAsset);
 
-		return texAsset;
 	}
 
 	exports.importFromFile = function(file, folder, callback){
@@ -2564,8 +2851,9 @@ define("Core/Assets/Importer/Image-debug", ["../Texture-debug"], function(requir
 
 			if( evt.target.readyState == FileReader.DONE ){
 
-				var res = exports.import( file.name, evt.target.result, folder);
-				callback && callback(res);
+				exports.import( file.name, evt.target.result, folder, function(res){
+					callback && callback(res);
+				});
 			}
 		}
 		reader.readAsDataURL( file );
@@ -2742,7 +3030,7 @@ define("Core/UIBase/Checkbox-debug", [], function(require, exports, module){
 				this.model = new Model;
 			}
 			var self = this;
-
+			
 			this.render();
 		},
 
@@ -3115,16 +3403,14 @@ define("Core/UIBase/Label-debug", [], function(require, exports, module){
 
 //===================================
 // Color.js
-// use jquery color picker for color picking
-// http://www.eyecon.ro/colorpicker/
-// todo need reconstruct
+// http://bgrins.github.com/spectrum/
 //===================================
 define("Core/UIBase/Color-debug", [], function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
 			name : '',
-			color : 0	//hex value
+			color : 0	//hex string
 		}
 	})
 
@@ -3136,60 +3422,44 @@ define("Core/UIBase/Color-debug", [], function(require, exports, module){
 
 		className : 'lblend-color',
 
-		template : '<label class="lblend-color-label">{{label}}</label><div class="lblend-color-picker"></div>',
-
-		$picker : null,
-
-		colorPickerId : '',
+		template : '<label class="lblend-color-label" data-html="model.name"></label>\
+						<div class="lblend-color-picker">\
+							<input type="text" data-value="model.color"/>\
+						</div>',
 
 		initialize : function(){
 
-			this.model.on('change:name', function(model, name){
-				this.$el.children('.lblend-color-label').html(name);
-			}, this)
-			this.model.on('change:color', function(model, color, options){
-
-				this.$picker.css({
-					'background-color' : '#' + color.toString(16)
-				})
-				if(options.triggeronce){
-					return;
-				}
-				$picker.ColorPickerSetColor(color);
-			}, this)
+			if( ! this.model){
+				this.model = new Model;
+			}
 
 			this.render();
 
 			this.on('dispose', function(){
-				$('#'+this.colorPickerId).remove();
+				this.$input.spectrum("destroy");
+			}, this);
+			this.model.on('change:color', function(model, value){
+				this.$input.spectrum('set', value);
 			}, this)
 		},
+
+		$input : null,
 
 		render : function(){
 			var self = this;
 
-			this.$el.html(_.template(this.template, {
-				label : this.model.get('name')
-			}))
-			var $picker = this.$el.find('.lblend-color-picker');
-			
-			var color = this.model.get('color');
-			$picker.ColorPicker({
-				color : color.toString(16),	//不支持多种颜色格式实在是有点不爽
-				onChange : function(hsb, hex, rgb){
-					self.model.set('color', hex, {
-						'triggeronce' : true
-					});
-				}
-			})
-			if( color ){
-				$picker.css({
-					'background-color' : '#' + color.toString(16)
-				})
-			}
+			this.$el.html(_.template(this.template) );
+			rivets.bind(this.$el, {model : this.model});
 
-			this.$picker = $picker;
-			this.colorPickerId = this.$picker.data('colorpickerId');
+			var $input = this.$el.find('.lblend-color-picker input');
+			$input.spectrum({
+				clickoutFiresChange : true,
+				showButtons : false,
+				showInput : true,
+				preferredFormat : 'hex'
+			});
+
+			this.$input = $input;
 		}
 	})
 
@@ -3252,6 +3522,7 @@ define("Core/UIBase/Layer-debug", [], function(require, exports, module){
 			this.render();
 
 			//recursive
+			//remove the deepest first
 			this.on('dispose', function(){
 				this.removeAll();
 			}, this);
@@ -3354,6 +3625,9 @@ define("Core/UIBase/Layer-debug", [], function(require, exports, module){
 		},
 
 		removeView : function(view){
+			
+			view.trigger('dispose');
+
 			var index = _.indexOf(this._views, view);
 			if(index < 0){
 				return null;
@@ -3366,13 +3640,14 @@ define("Core/UIBase/Layer-debug", [], function(require, exports, module){
 			});
 
 			// 
-			view.trigger('dispose');
+			view.trigger('disposed');
 		},
 
 		removeAll : function(){
 			_.each(this._views, function(view){
+				view.trigger('dispose')
 				view.$el.remove();	
-				view.trigger('dispose');
+				view.trigger('disposed');
 			})
 			this._views = [];
 			this.collection.reset();
@@ -3733,7 +4008,7 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 				}
 			}, this)
 
-			this.on('dispose', function(){
+			this.on('disposed', function(){
 				$('.lblend-select-dropdown-list').remove();
 			})
 
@@ -3854,7 +4129,7 @@ define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports
 	var Model = Backbone.Model.extend({
 		defaults : {
 			name : '',
-			filename : 'none',	//文件位置
+			path : 'none',	//文件位置
 			texture : null	//THREE.Texture
 		}
 	});
@@ -3867,7 +4142,7 @@ define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports
 
 		className : 'lblend-texture',
 
-		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-filename" data-html="model.filename"></span>',
+		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-path" data-html="model.path"></span>',
 
 		popupTemplate : '<div class="lblend-texture-popup"><div class="lblend-texture-popup-image"></div></div>',
 
@@ -3879,7 +4154,7 @@ define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports
 		textureID : 0,
 
 		events : {
-			'click .lblend-texture-filename' : 'toggleImage'
+			'click .lblend-texture-path' : 'toggleImage'
 		},
 		
 		initialize : function(){
@@ -3922,8 +4197,8 @@ define("Core/UIBase/Texture-debug", ["./Float-debug"], function(require, exports
 				var offset = this.$el.offset();
 
 				this.$popup.css({
-					left : offset.left,
-					top : offset.top+this.$el.height()+2
+					left : offset.left+20,
+					top : offset.top+this.$el.height()+5
 				})
 				$(document.body).append(this.$popup);
 			}
@@ -3999,14 +4274,20 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 		var html = _.template('<li class="lblend-tree-file">\
 						<span class="lblend-tree-title" draggable="true">\
-							<span class="{{icon}}"></span>\
+							<span class="lblend-tree-icon"></span>\
 							<a>{{name}}</a>\
 						</span>\
 					</li>', {
-						icon : this.icon,
 						name : this.name
 					})
 		var $el = $(html);
+		if(_.isString(this.icon)){
+			$el.find('.lblend-tree-icon').addClass(this.icon);
+		}else{
+			// an image or something else
+			$el.find('.lblend-tree-icon').append(this.icon);
+		}
+
 		this.$el = $el;
 
 		$el.data('path', this.getPath() );
@@ -4191,18 +4472,24 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 		var html = _.template('<li class="lblend-tree-folder">\
 						<span class="lblend-tree-title" draggable="true">\
 							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
-							<span class="{{icon}}"></span>\
+							<span class="lblend-tree-icon"></span>\
 							<a>{{name}}</a>\
 						</span>\
 						<ul>\
 						</ul>\
 					</li>', {
-						icon : this.icon,
 						name : this.name
 					})
 
 		var $el = $(html),
 			$ul = $el.children('ul');
+
+		if(_.isString(this.icon)){
+			$el.find('.lblend-tree-icon').addClass(this.icon);
+		}else{
+			// an image or something else
+			$el.find('.lblend-tree-icon').append(this.icon);
+		}
 
 		$el.data('path', this.getPath());
 
@@ -4465,9 +4752,9 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 			})
 
 			// !! if the treeview is not used anymore 
-			// must trigger dispose event manually
+			// must trigger disposed event manually
 			treeInstances.push(this);
-			this.on('dispose', function(){
+			this.on('disposed', function(){
 				_.without(treeInstances, self);
 			})
 		},

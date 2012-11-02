@@ -9,7 +9,8 @@ define(function(require, exports){
 	var hub = require('../Core/Hub').getInstance();
 	var Assets = require('../Core/Assets/index');
 	var MouseEventDispatcher = require('./MouseEventDispatcher');
-	var project = require('./Project').getInstance();
+
+	var FS = require('../Core/Assets/FileSystem');
 
 
 	var renderer,
@@ -56,7 +57,7 @@ define(function(require, exports){
 			mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, true );
 
 			setInterval(function(){
-				render();
+				// render();
 			}, 20);
 
 			init();
@@ -366,11 +367,6 @@ define(function(require, exports){
 		})
 
 		hub.on('update:material', function( mat, query, value, silent ){
-
-			if( _.isString( mat ) ){
-
-				mat = project.getAsset( '/project/material/'+mat );
-			}
 
 			// 添加找不到material后输出的错误信息
 			if( mat ){

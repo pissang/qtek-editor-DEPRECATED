@@ -7,9 +7,12 @@ define(function(require, exports, module){
 
 	var TextureAsset = require('../Texture');
 
-	exports.import = function(name, data, folder){
+	exports.import = function(name, data, folder, callback){
 
 		var image = new Image;
+		image.onload = function(){
+			callback && callback(texAsset);
+		}
 		image.src = data;
 
 		var texture = new THREE.Texture(image);
@@ -20,7 +23,6 @@ define(function(require, exports, module){
 
 		texFolder.createFile(texAsset.name, texAsset);
 
-		return texAsset;
 	}
 
 	exports.importFromFile = function(file, folder, callback){
@@ -30,8 +32,9 @@ define(function(require, exports, module){
 
 			if( evt.target.readyState == FileReader.DONE ){
 
-				var res = exports.import( file.name, evt.target.result, folder);
-				callback && callback(res);
+				exports.import( file.name, evt.target.result, folder, function(res){
+					callback && callback(res);
+				});
 			}
 		}
 		reader.readAsDataURL( file );
