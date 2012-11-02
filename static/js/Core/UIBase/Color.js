@@ -1,15 +1,13 @@
 //===================================
 // Color.js
-// use jquery color picker for color picking
-// http://www.eyecon.ro/colorpicker/
-// todo need reconstruct
+//
 //===================================
 define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
 			name : '',
-			color : 0	//hex value
+			color : 0	//hex string
 		}
 	})
 
@@ -21,60 +19,43 @@ define(function(require, exports, module){
 
 		className : 'lblend-color',
 
-		template : '<label class="lblend-color-label">{{label}}</label><div class="lblend-color-picker"></div>',
-
-		$picker : null,
-
-		colorPickerId : '',
+		template : '<label class="lblend-color-label" data-html="model.name"></label>\
+						<div class="lblend-color-picker">\
+							<input type="text" data-value="model.color"/>\
+						</div>',
 
 		initialize : function(){
 
-			this.model.on('change:name', function(model, name){
-				this.$el.children('.lblend-color-label').html(name);
-			}, this)
-			this.model.on('change:color', function(model, color, options){
-
-				this.$picker.css({
-					'background-color' : '#' + color.toString(16)
-				})
-				if(options.triggeronce){
-					return;
-				}
-				$picker.ColorPickerSetColor(color);
-			}, this)
+			if( ! this.model){
+				this.model = new Model;
+			}
 
 			this.render();
 
 			this.on('dispose', function(){
-				$('#'+this.colorPickerId).remove();
+				this.$input.spectrum("destroy");
+			}, this);
+			this.model.on('change:color', function(model, value){
+				this.$input.spectrum('set', value);
 			}, this)
 		},
+
+		$input : null,
 
 		render : function(){
 			var self = this;
 
-			this.$el.html(_.template(this.template, {
-				label : this.model.get('name')
-			}))
-			var $picker = this.$el.find('.lblend-color-picker');
-			
-			var color = this.model.get('color');
-			$picker.ColorPicker({
-				color : color.toString(16),	//不支持多种颜色格式实在是有点不爽
-				onChange : function(hsb, hex, rgb){
-					self.model.set('color', hex, {
-						'triggeronce' : true
-					});
-				}
-			})
-			if( color ){
-				$picker.css({
-					'background-color' : '#' + color.toString(16)
-				})
-			}
+			this.$el.html(_.template(this.template) );
+			rivets.bind(this.$el, {model : this.model});
 
-			this.$picker = $picker;
-			this.colorPickerId = this.$picker.data('colorpickerId');
+			var $input = this.$el.find('.lblend-color-picker input');
+			$input.spectrum({
+				clickoutFiresChange : true,
+				showButtons : false,
+				showInput : true
+			});
+
+			this.$input = $input;
 		}
 	})
 

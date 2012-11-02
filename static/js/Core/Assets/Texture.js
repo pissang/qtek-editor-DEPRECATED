@@ -138,6 +138,7 @@ define(function(require, exports, module){
 		return {
 			'Texture Asset' : {
 				type : 'layer',
+				'class' : 'texture',
 				sub : {
 					'name' : {
 						type : 'input',

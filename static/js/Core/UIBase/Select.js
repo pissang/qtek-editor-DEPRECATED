@@ -59,6 +59,10 @@ define(function(require, exports, module){
 				}
 			}, this)
 
+			this.on('disposed', function(){
+				$('.lblend-select-dropdown-list').remove();
+			})
+
 			this.render();
 		},
 

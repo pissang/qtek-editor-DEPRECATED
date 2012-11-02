@@ -4,6 +4,9 @@
 // Basic Shader Asset
 //
 // Shader Asset is part of Material Asset
+// the uniforms in Shader Assets has no specific value,
+// it defines the config of the each uniform, like min value, max value and so on
+// only when it is attached to the material, the values will be used;
 //========================
 define(function(require, exports, module){
 
@@ -25,10 +28,13 @@ define(function(require, exports, module){
 		// not clone the textures;
 		_.each(this.uniforms, function(u, name){
 
-			clonedUniform[name] = {
-				type : u.type,
-				value : self.cloneValue( u.value )
-			}
+			clonedUniform[name] = {};
+			_.extend(clonedUniform[name], u);
+
+			// deep clone the value except texture
+			// to keep the unfiorm clean
+			clonedUniform[name].value = self.cloneValue( u.value );
+
 		})
 		return new Shader({
 			uniforms : clonedUniform,
@@ -43,7 +49,7 @@ define(function(require, exports, module){
 			_.each(v, function(item, idx){
 				clonedArray[idx] = self.cloneValue(item);
 			})
-			return clonedArray
+			return clonedArray;
 		}
 		else if (v instanceof THREE.Color ||
 			 v instanceof THREE.Vector2 ||
@@ -160,6 +166,10 @@ define(function(require, exports, module){
 		_.each( str.uniforms, function(uniform, key){
 
 			var value;
+
+			uniforms[key] = {};
+			_.extend(uniforms[key], uniform);
+
 			switch( uniform.type){
 				case 'f':
 				case 'i':
@@ -234,10 +244,8 @@ define(function(require, exports, module){
 					value = 0;
 			}
 
-			unfiorms[key] = {
-				type : uniform.type,
-				value : value
-			}
+			uniforms[key].value = value;
+
 		} )
 
 		var shader = new Shader({
@@ -258,6 +266,10 @@ define(function(require, exports, module){
 		json.uniforms = {};
 
 		_.each( shader.uniforms, function(uniform, key){
+
+			json.uniforms[key] = {};
+			_.extend(json.uniforms[key], uniform);
+
 			var value;
 			switch( uniform.type ){
 				case 'f':
@@ -320,13 +332,10 @@ define(function(require, exports, module){
 					value = uniform.value.getHex();
 					break;
 				default:
-					value = 0;	//and so on.............
+					value = 0;
 			}
 
-			json.uniforms[key] = {
-				type : uniform.type,
-				value : value
-			}
+			json.uniforms[key].value = value;
 		} )
 
 		json['vertexShader'] = shader.vertexShader;
@@ -380,16 +389,88 @@ define(function(require, exports, module){
 	// shader constructor
 	exports.Shader = Shader;
 
-
 	// some build in shader
+	exports.buildin = {};
 	var basicShader = new Shader( THREE.ShaderLib.basic);
 	basicShader.name = 'buildin-basic';
-	exports['buildin-basic'] = exports.create( basicShader );
+	exports.buildin['buildin-lambert'] = exports.create( basicShader );
+	
+	// extend the build in shader configs
+	basicShader.uniforms['diffuse'].configurable = true;
+	basicShader.uniforms['map'].configurable = true;
+	basicShader.uniforms['lightMap'].configurable = true;
+	basicShader.uniforms['envMap'].configurable = true;
+	_.extend(basicShader.uniforms['reflectivity'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	});
+	_.extend(basicShader.uniforms['refractionRatio'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	})
+
 	var phongShader = new Shader( THREE.ShaderLib.phong );
 	phongShader.name = 'buildin-phong';
-	exports['buildin-phong'] = exports.create( phongShader );
+	exports.buildin['buildin-phong'] = exports.create( phongShader );
+	
+	// extend the build in shader configs
+	phongShader.uniforms['diffuse'].configurable = true;
+	phongShader.uniforms['ambient'].configurable = true;
+	phongShader.uniforms['emissive'].configurable = true;
+	phongShader.uniforms['specular'].configurable = true;
+
+	phongShader.uniforms['map'].configurable = true;
+	phongShader.uniforms['lightMap'].configurable = true;
+	phongShader.uniforms['normalMap'].configurable = true;
+	_.extend(phongShader.uniforms['normalScale'], {
+		min : 0,
+		max : 10.0,
+		step : 0.005
+	});
+	phongShader.uniforms['envMap'].configurable = true;
+	_.extend(phongShader.uniforms['reflectivity'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	});
+	_.extend(phongShader.uniforms['refractionRatio'], {
+		min : 0,
+		max : 1.0,
+		step : 0.005,
+		configurable : true	//enable config
+	})
+	_.extend(phongShader.uniforms['shininess'], {
+		min : 0,
+		max : 1000.0,
+		step : 2,
+		configurable : true	//enable config
+	})
+
 	var lambertShader = new Shader( THREE.ShaderLib.lambert);
 	lambertShader.name = 'buildin-lambert';
-	
-	exports['buildin-lambert'] = exports.create( lambertShader );
+	exports.buildin['buildin-lambert'] = exports.create( lambertShader );
+	// extend the build in shader configs
+	lambertShader.uniforms['diffuse'].configurable = true;
+	lambertShader.uniforms['ambient'].configurable = true;
+	lambertShader.uniforms['emissive'].configurable = true;
+
+	lambertShader.uniforms['map'].configurable = true;
+	lambertShader.uniforms['lightMap'].configurable = true;
+	lambertShader.uniforms['envMap'].configurable = true;
+
+	_.extend(lambertShader.uniforms['reflectivity'], {
+		min : 0,
+		max : 1.0,
+		step : 0.01
+	});
+	_.extend(lambertShader.uniforms['refractionRatio'], {
+		min : 0,
+		max : 1.0,
+		step : 0.01
+	})
 })

@@ -35,7 +35,8 @@ define(function(require, exports, module){
 
 				$el.layout({
 					north__size : 25,
-					east__minSize : 330,
+					east__size : 330,
+					east__minSize : 150,
 					north__resizable : false,
 					onresize_end : function(){
 						Scene.getInstance().resize();

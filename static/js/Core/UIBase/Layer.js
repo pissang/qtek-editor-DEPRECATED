@@ -51,6 +51,7 @@ define(function(require, exports, module){
 			this.render();
 
 			//recursive
+			//remove the deepest first
 			this.on('dispose', function(){
 				this.removeAll();
 			}, this);
@@ -153,6 +154,9 @@ define(function(require, exports, module){
 		},
 
 		removeView : function(view){
+			
+			view.trigger('dispose');
+
 			var index = _.indexOf(this._views, view);
 			if(index < 0){
 				return null;
@@ -165,13 +169,14 @@ define(function(require, exports, module){
 			});
 
 			// 
-			view.trigger('dispose');
+			view.trigger('disposed');
 		},
 
 		removeAll : function(){
 			_.each(this._views, function(view){
+				view.trigger('dispose')
 				view.$el.remove();	
-				view.trigger('dispose');
+				view.trigger('disposed');
 			})
 			this._views = [];
 			this.collection.reset();

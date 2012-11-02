@@ -52,11 +52,12 @@ define("Core/svg-debug", [], function(require, exports, module){
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/Assets/index-debug", ["./Geometry-debug", "./Material-debug", "./Prefab-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug", "./FileSystem-debug", "./Importer/index-debug", "./Importer/Binary-debug", "./Importer/Collada-debug", "./Importer/JSON-debug", "./Importer/Zip-debug", "./Importer/Image-debug", "./Importer/DDS-debug"], function(require, exports, module){
+define("Core/Assets/index-debug", ["./Geometry-debug", "./Material-debug", "./Shader-debug", "./FileSystem-debug", "./Prefab-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug", "./Importer/index-debug", "./Importer/Binary-debug", "./Importer/Collada-debug", "./Importer/JSON-debug", "./Importer/Zip-debug", "./Importer/Image-debug", "./Importer/DDS-debug"], function(require, exports, module){
 
 	exports.Geometry 	= require('./Geometry-debug');
 	exports.Material 	= require('./Material-debug');
 	exports.Prefab 		= require('./Prefab-debug');
+	exports.Shader		= require('./Shader-debug');
 	exports.Texture 	= require('./Texture-debug');
 	exports.TextureCube = require('./TextureCube-debug');
 	exports.FileSystem 	= require('./FileSystem-debug');
@@ -70,6 +71,9 @@ define("Core/Assets/index-debug", ["./Geometry-debug", "./Material-debug", "./Pr
 // Geometry.js
 //
 // Basic Geometry Asset
+//
+// Geometry Asset is part of Prefab Asset
+//
 // Save an geometry instance, which can be imported and exported as a json format asset
 //========================
 define("Core/Assets/Geometry-debug", [], function(require, exports, module){
@@ -151,7 +155,6 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 		// https://github.com/mrdoob/three.js/issues/363
 		// https://github.com/mrdoob/three.js/wiki/Updates
 
-		// fucking cache
 		// https://github.com/mrdoob/three.js/issues/2073
 		// https://github.com/mrdoob/three.js/issues/363
 		if( material.map ){
@@ -371,21 +374,56 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 // Save an material instance, which can be imported and exported as a json format asset
 // file extension, material
 //========================
-define("Core/Assets/Material-debug", [], function(require, exports, module){
+define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], function(require, exports, module){
+
+	var ShaderAsset = require('./Shader-debug');
+	var FS = require('./FileSystem-debug');
 
 	var guid = 0;
 
 	function create(mat){
 
 		var name = mat && mat.name;
-		
+		var newMat;
+		// tranform other material types to shader material
+		if( ! mat.shader ){
+			if( mat instanceof THREE.MeshPhongMaterial){
+				var shader = ShaderAsset.buildin['buildin-phong'].getInstance();
+				newMat = new THREE.ShaderMaterial;
+				bindShader(newMat, shader);
+			}
+			else if( mat instanceof THREE.MeshLambertMaterial){
+				var shader = ShaderAsset.buildin['buildin-lambert'].getInstance();
+				newMat = new THREE.ShaderMaterial;
+				bindShader(newMat, shader);
+			}
+			else if( mat instanceof THREE.MeshBasicMaterial){
+				var shader = ShaderAsset.buildin['buildin-basic'].getInstance();
+				newMat = new THREE.ShaderMaterial;
+				bindShader(newMat, shader);
+			}
+			else if(mat instanceof THREE.ShaderMaterial){
+				newMat = mat;
+				// create a shader asset;
+				var shaderAsset = ShaderAsset.create(new ShaderAsset.Shader({
+					uniforms : mat.uniforms,
+					fragmentShader : mat.fragmentShader,
+					vertexShader : mat.vertexShader
+				}))
+				bindShader(mat, shaderAsset.data);
+			}
+			newMat.name = mat.name;
+		}else{
+			newMat = mat;
+		}
+
 		var ret = {
 
 			type : 'material',
 
 			name : name || 'Material_' + guid++,
 
-			data : mat || null,
+			data : newMat || null,
 
 			host : null,
 
@@ -400,6 +438,9 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 				}
 
 				return this.data;
+			},
+			bindShader : function(shader){
+				bindShader( this.data, shader);
 			},
 			export : function(){
 				return toJSON( this.data );
@@ -421,165 +462,37 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 			}
 		}
 
-		mat && (mat.host = ret);
+		newMat && (newMat.host = ret);
 
 		return ret;
 	}
 
-	function parseShaders(){
-
-	}
-
 	// we drop all the material types in THREE.js and leave a ShaderMaterial
 	// to manage shaders, to keep material management more clearly;
-	function read(m, textureScope){
+	function read(m){
 
-		if( material ){
-
-			return material;
-		}
-
-		if( m.type == 'basic'){
-
-			material = new THREE.MeshBasicMaterial(  );
-
-		}
-		else if(m.type == 'lambert'){
-
-			material = new THREE.MeshLambertMaterial(  );
-
-			_.extend(material, {
-				ambient : new THREE.Color(m.ambient),
-				emissive : new THREE.Color(m.emissive)
-			})
-		}
-		else if(m.type == 'phong'){
-
-			material = new THREE.MeshPhongMaterial(  );
-
-			_.extend(material, {
-				amibent : new THREE.Color( m.ambient ),
-				emissive : new THREE.Color( m.emissive ),
-
-				specular : m.specular,
-				shininess : m.shininess,
-				meta : m.metal,
-				perPixel : m.perPixel
-			})
-		}
-		else if(m.type == 'shader'){
-
-			material = new THREE.ShaderMaterial( {
-				
-				vertexShader : m.vertexShader,
-
-				fragmentShader : m.fragmentShader
-			});
-
-			var uniforms = {};
-			_.each( m.uniforms, function(uniform, key){
-
-				var value;
-				switch( uniform.type){
-					case 'f':
-						value = uniform.value;
-						break;
-					case 'v2':
-						value = new THREE.Vector2(uniform.value.x, uniform.value.y);
-						break;
-					case 'v3' :
-						value = new THREE.Vector3(uniform.value.x, uniform.value.y, uniform.value.z);
-						break;
-					case 'v4':
-						value = new THREE.Vector4(uniform.value.x, uniform.value.y, uniform.value.z, uniform.value.w);
-						break;
-					case 't':
-						value = textureScope( uniform.value );
-						break;
-					case 'c':
-						value = new THREE.Color( uniform.value );
-						break
-					default:
-						value = 0;	//and so on.............
-				}
-
-				unfiorms[key] = {
-					type : uniform.type,
-					value : value
-				}
-			} )
-
-			material.uniforms = uniforms;
-		}
-
-		if( m.type != 'shader'){
-
-			_.extend(material, {
-				name : m.name,
-
-				map : textureScope(m.map),
-				lightMap : textureScope(m.lightMap),
-				specularMap : textureScope(m.specularMap),
-				envMap : textureScope(m.envMap),
-
-				color : new THREE.Color( m.color ),
-
-				opacity : m.opacity,
-				transparent : m.transparent,
-				reflectivity : m.reflectivity,
-				refractionRatio : m.refractionRatio,
-				shading : m.shading,
-				wireframe : m.wireframe
-			});
-
-		}
 
 		return material;
 	}
 
+	function bindShader(material, shader){
+
+		// get a shader copy
+		shader = ShaderAsset.getInstance(shader);
+		material.shader = shader;
+
+		// also save these for three.js		
+		material.uniforms = shader.uniforms;
+		material.fragmentShader = shader.fragmentShader;
+		material.vertexShader = shader.vertexShader;
+		material.needsUpdate = true;
+	}
+
 	function toJSON( material ){
 
-		var json = {};
-		json.name = material.name;
-
-		if( material instanceof THREE.ShaderMaterial ){
-
-			json.uniforms = [];
-
-			_.each( material.uniforms, function(uniform, key){
-				var value;
-				switch( uniform.type ){
-					case 'f':
-						value = uniform.value;
-						break;
-					case 'v2':
-						value = [uniform.value.x, uniform.value.y];
-						break;
-					case 'v3' :
-						value = [uniform.value.x, uniform.value.y, uniform.value.z];
-						break;
-					case 'v4':
-						value = [uniform.value.x, uniform.value.y, uniform.value.z, uniform.value.w];
-						break;
-					case 't':
-						value = textureUriBase + uniform.value.name;
-						break;
-					case 'c':
-						value = uniform.value.getHex();
-						break
-					default:
-						value = 0;	//and so on.............
-				}
-
-				json.uniforms[key] = {
-					type : uniform.type,
-					value : value
-				}
-			} )
-
-			json['vertexShader'] = material.vertexShader;
-			json['fragmentShader'] = material.fragmentShader;
-			json['type'] = 'shader';
+		var json = {
+			name : material.name,
+			shader : this.shader.host.getPath()
 		}
 		
 		return json;
@@ -587,44 +500,7 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 
 	function getCopy( mat ){
 
-		var clonedMaterial = mat.clone();
-
-		if( clonedMaterial instanceof THREE.ShaderMaterial ){
-
-			_.each(clonedMaterial.uniforms, function(item, key){
-
-				if( item.type == 't' ){
-
-					if(item.value){	
-
-						item.value = item.value.clone();
-						item.value.needsUpdate = true;
-					}
-				}
-			})
-		}
-		else {
-			if(clonedMaterial.map){
-
-				clonedMaterial.map = clonedMaterial.map.clone();
-				clonedMaterial.map.needsUpdate = true;
-			}
-			if( clonedMaterial.lightMap){
-
-				clonedMaterial.lightMap = clonedMaterial.lightMap.clone();
-				clonedMaterial.map.needsUpdate = true;
-			}
-			if( clonedMaterial.specularMap ){
-
-				clonedMaterial.specularMap = clonedMaterial.specularMap.clone();
-				clonedMaterial.map.needsUpdate = true;
-			}
-			if( clonedMaterial.envMap ){
-
-				clonedMaterial.envMap = clonedMaterial.envMap.clone();
-				clonedMaterial.map.needsUpdate = true;
-			}
-		}
+		var mat = new THREE.ShaderMaterial();
 
 		return clonedMaterial;
 	}
@@ -641,12 +517,59 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 					material.host.host.setName(value);
 				}
 			},
+			'shader' : {
+				type : 'select',
+				options : [{
+					value : 'buildin-basic',
+					description : 'Buildin Basic'
+				},{
+					value : 'buildin-lambert',
+					description : 'Buildin Lambert'
+				},{
+					value : 'buildin-phong',
+					description : 'Buildin Phong'
+				},{
+					value : 'custom',
+					description : 'custom'
+				}],
+				value : (function(){
+					var path = material.shader.host.getPath();
+					// is a build in shader
+					if( ShaderAsset.buildin[ path ] ){
+						return path;
+					}else{
+						return 'custom'
+					}
+				})(),
+				onchange : function(value, updatePartial){
+					// build in shader
+					if( ShaderAsset.buildin[value] ){
+
+						bindShader( material, ShaderAsset.buildin[value].getInstance() );
+					}else{
+						
+						//query the shader;
+						bindShader( material, FS.root.find(value) );
+					}
+
+					// update Shader Asset Part
+					updatePartial && updatePartial( 'Shader Asset' );
+				}
+
+			}
 		}
 
 		return {
 			'Material Asset' : {
 				type : 'layer',
 				sub : props
+			},
+
+			'Shader Asset' : {
+				type : 'layer',
+				sub : {
+
+				}
 			}
 		}
 	}
@@ -655,7 +578,622 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 	// static functions
 	exports.export = toJSON;
 
+	exports.bindShader = bindShader;
+
 	exports.getCopy = getCopy;
+})
+
+//========================
+// Shader.js
+//
+// Basic Shader Asset
+//
+// Shader Asset is part of Material Asset
+//========================
+define("Core/Assets/Shader-debug", [], function(require, exports, module){
+
+	var guid = 0;
+
+	// extend an shader object
+	Shader = function(json){
+
+		this.uniforms = json.uniforms;
+
+		this.vertexShader = parseShaderString(json.vertexShader);
+
+		this.fragmentShader = parseShaderString(json.fragmentShader);
+	}
+
+	Shader.prototype.clone = function(){
+		var clonedUniform = {};
+		var self = this;
+		// not clone the textures;
+		_.each(this.uniforms, function(u, name){
+
+			clonedUniform[name] = {
+				type : u.type,
+				value : self.cloneValue( u.value )
+			}
+		})
+		return new Shader({
+			uniforms : clonedUniform,
+			fragmentShader : this.fragmentShader,
+			vertexShader : this.vertexShader
+		})
+	}
+	Shader.prototype.cloneValue = function(v){
+		var self = this;
+		if( _.isArray(v) ){
+			var clonedArray = [];
+			_.each(v, function(item, idx){
+				clonedArray[idx] = self.cloneValue(item);
+			})
+			return clonedArray
+		}
+		else if (v instanceof THREE.Color ||
+			 v instanceof THREE.Vector2 ||
+			 v instanceof THREE.Vector3 ||
+			 v instanceof THREE.Vector4 ||
+			 v instanceof THREE.Matrix4){
+			return v.clone();
+		}
+		return v;
+	}
+
+	function create(shader){
+
+		var name = shader && shader.name;
+		
+		var ret = {
+
+			type : 'shader',
+
+			name : name || 'Shader_' + guid++,
+
+			data : shader || null,
+
+			host : null,
+
+			// textureScope is a function to query a texture
+			import : function(json, textureScope){
+				this.data = read(json, textureScope);
+
+				this.data.host = this;
+
+				if( json.name ){
+					this.name = json.name;
+				}
+
+				return this.data;
+			},
+			export : function(){
+				return toJSON( this.data );
+			},
+			getInstance : function(){
+				return getInstance(this.data);
+			},
+			getCopy : function(){
+				return getCopy( this.data );
+			},
+			getConfig : function(){
+				return getConfig( this.data );
+			},
+			getPath : function(){
+				if( this.host){
+					return this.host.getPath();
+				}
+				else{
+					// specially for build in shaders
+					return this.name;
+				}
+			}
+		}
+
+		shader && (shader.host = ret);
+
+		return ret;
+	}
+
+	function parseShaders(vertexShader, fragmentShader){
+
+	}
+
+	function parseShaderString(shaderString){
+
+		return shaderString.replace(/{{(.*?)}}/, replaceShaderChunk);
+
+	}
+
+	function parseUniforms(shaderString){
+		var uniforms = {};
+
+		var uniformDefines = shaderString.match(/uniform\s*\S*\s*\S*\s*;/);
+		_.each(uniformDefines, function(str){
+			var parts = str.split(' ');
+			var type = trim(parts[1]);
+			var name = trim(parts[2]);
+
+			unfiroms[name] = {
+				type : typeLookup[type]
+			}
+		})
+		return uniforms;
+	}
+
+	var typeLookup = {
+		'float' : 'f',
+		'vector2' : 'v2',
+		'vector3' : 'v3',
+		'vector4' : 'v4',
+		'mat4' : 'm4v',
+	}
+
+	function replaceShaderChunk(matchStr, chunkName, offset, string){
+		// todo  give a shader chunk query path
+		// not only in ShaderChunk
+		return THREE.ShaderChunk[ chunkName ];
+	}
+
+	function trim(str){
+		return str.replace(/(^\s*)|(\s*$)/g, "");  
+	}
+
+	function read(str, textureScope){
+
+		var uniforms = {};
+		//https://github.com/mrdoob/three.js/wiki/Uniforms-types
+		_.each( str.uniforms, function(uniform, key){
+
+			var value;
+			switch( uniform.type){
+				case 'f':
+				case 'i':
+					value = uniform.value;
+					break;
+				case 'fv':
+				case 'fv1':
+				case 'iv':
+				case 'iv1':
+					value = unifom.value;
+					break;
+				case 'v2':
+					value = new THREE.Vector2();
+					value.set.apply(value, uniform.value);
+					break;
+				case 'v2v':
+					value = [];
+					_.each(uniform.value, function(item){
+						var v = new THREE.Vector2();
+						v.set.apply(v, item.value);
+						value.push(v);
+					});
+					break;
+				case 'v3' :
+					value = new THREE.Vector3();
+					value.set.apply(value, uniform.value);
+					break;
+				case 'v3v':
+					value = [];
+					_.each(uniform.value, function(item){
+						var v = new THREE.Vector3();
+						v.set.apply(v, item.value);
+						value.push(v);
+					});
+					break;
+				case 'v4':
+					value = new THREE.Vector4();
+					value.set.apply(value, uniform.value);
+					break;
+				case 'v4v':
+					value = [];
+					_.each(uniform.value, function(item){
+						var v = new THREE.Vector4();
+						v.set.apply(v, item.value);
+						value.push(v);
+					});
+					break;
+				case 'm3':
+					value = new THREE.Matrix3();
+					value.set.apply(value, uniform.value);
+					break;
+				case 'm4':
+					value = new THREE.Matrix4();
+					value.set.apply(value, uniform.value);
+					break;
+				case 'm4v':
+					value = [];	//mainly for shadowMatrix
+					break
+				case 't':
+					value = textureScope( uniform.value );
+					break;
+				case 'tv':
+					var value = [];
+					_.each(uniform.value, function(item){
+						value.push( textureScope(item) );
+					});
+					break;
+				case 'c':
+					value = new THREE.Color( uniform.value );
+					break
+				default:
+					value = 0;
+			}
+
+			unfiorms[key] = {
+				type : uniform.type,
+				value : value
+			}
+		} )
+
+		var shader = new Shader({
+			uniforms : uniforms,
+			vertexShader : str.vertexShader,
+			fragmentShader : str.fragmentShader
+		});
+		shader.name = str.name;
+
+		return shader;
+	}
+
+	function toJSON( shader ){
+
+		var json = {};
+		json.name = shader.name;
+
+		json.uniforms = {};
+
+		_.each( shader.uniforms, function(uniform, key){
+			var value;
+			switch( uniform.type ){
+				case 'f':
+				case 'i':
+					value = uniform.value;
+					break;
+				case 'fv':
+				case 'fv1':
+				case 'iv':
+				case 'iv1':
+					value = unifom.value;
+					break;
+				case 'v2':
+					value = [uniform.value.x, uniform.value.y];
+					break;
+				case 'v2v':
+					var value = [];
+					_.each(uniform.value, function(item){
+						value.push([item.x, item.y]);
+					})
+					break;
+				case 'v3v':
+					var value = [];
+					_.each(uniform.value, function(item){
+						value.push([item.x, item.y, item.z]);
+					})
+					break;
+				case 'v4v':
+					var value = [];
+					_.each(uniform.value, function(item){
+						value.push([item.x, item.y, item.z, item.w]);
+					})
+					break;
+				case 'v3' :
+					value = [uniform.value.x, uniform.value.y, uniform.value.z];
+					break;
+				case 'v4':
+					value = [uniform.value.x, uniform.value.y, uniform.value.z, uniform.value.w];
+					break;
+				case 'm3':
+					value  = uniform.value.flattenToArray();
+					break;
+				case 'm4':
+					value = unfiorm.value.flattenToArray();
+					break;
+				//todo
+				case 'm4v':
+					value = [];
+					break;
+				case 't':
+					value = uniform.value.host.getPath();
+					break;
+				case 'tv':
+					var value = [];
+					_.each(uniform.value, function(item){
+						value.push( item.host.getPath() );
+					});
+					break;
+				case 'c':
+					value = uniform.value.getHex();
+					break;
+				default:
+					value = 0;	//and so on.............
+			}
+
+			json.uniforms[key] = {
+				type : uniform.type,
+				value : value
+			}
+		} )
+
+		json['vertexShader'] = shader.vertexShader;
+		json['fragmentShader'] = shader.fragmentShader;
+		
+		return json;
+	}
+
+	function getInstance( shader ){
+
+		var clonedShader = shader.clone();
+		// have the same host
+		clonedShader.host = shader.host;
+
+		return clonedShader;
+	}
+
+	function getCopy( shader ){
+
+		var clonedShader = shader.clone();
+
+		_.each(clonedShader.uniforms, function(item, key){
+
+			if( item.type == 't' ){
+
+				if(item.value){	
+
+					item.value = item.value.host.getCopy();
+					item.value.needsUpdate = true;
+				}
+			}
+			if( item.type == 'tv'){
+				if(item.value){
+					_.each(item.value, function(t, idx){
+						item.value[idx] = t.host.getCopy();
+						item.value[idx].needsUpdate = true;
+					})
+				}
+			}
+		})
+
+		return clonedShader;
+	}
+
+	exports.create = create;
+	// static functions
+	exports.export = toJSON;
+	exports.getInstance = getInstance;
+	exports.getCopy = getCopy;
+
+	// shader constructor
+	exports.Shader = Shader;
+
+	// some build in shader
+	exports.buildin = {};
+	var basicShader = new Shader( THREE.ShaderLib.basic);
+	basicShader.name = 'buildin-basic';
+	exports.buildin['buildin-lambert'] = exports.create( basicShader );
+	
+	var phongShader = new Shader( THREE.ShaderLib.phong );
+	phongShader.name = 'buildin-phong';
+	exports.buildin['buildin-phong'] = exports.create( phongShader );
+	
+	var lambertShader = new Shader( THREE.ShaderLib.lambert);
+	lambertShader.name = 'buildin-lambert';
+	exports.buildin['buildin-lambert'] = exports.create( lambertShader );
+})
+
+//=====================
+// FileSystem.js
+// simulate a file system simply
+// Todo : add FileSystem api support and save data on hdd
+//=====================
+define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
+
+	var File = function(name, asset){
+
+		this.type = 'file';
+		this.name = name || '';
+		
+		this.data = null;
+		if(asset){
+			this.attach( asset, true );
+		}
+
+		this.parent = null;
+	}
+
+	_.extend(File.prototype, Backbone.Events);
+
+	File.prototype.getRoot = function(){
+		var root = this;
+		while(root.parent){
+			root = root.parent;
+		}
+		return root;
+	}
+	File.prototype.setName = function(name, silent){
+		if( ! silent){
+			// trigger before it is really updated
+			this.getRoot().trigger('updated:name', this, name);
+		}
+
+		this.name = name;
+	
+	}
+	File.prototype.attach = function(asset, silent){
+		this.data = asset;
+		asset.host = this;
+
+		if( ! silent){
+			this.getRoot().trigger('attached:asset', this, asset);
+		}
+	}
+	File.prototype.detach = function(silent){
+		this.data = null;
+		asset.host = null;
+
+		if( ! silent){
+			this.getRoot().trigger('detached:asset', this);
+		}
+	}
+	File.prototype.getPath = function(){
+		if( ! this.parent ){
+			return this.name;
+		}
+		return this.parent.getPath() + this.name;
+	}
+
+	var Folder = function(name){
+
+		this.name = name || '';
+
+		this.type = 'folder'
+
+		this.children = [];
+	}
+
+	_.extend(Folder.prototype, Backbone.Events);
+
+	Folder.prototype.setName = function(name, silent){
+		if( ! silent){
+			// trigger before it is really updated
+			this.getRoot().trigger('updated:name', this, name);
+		}
+
+		this.name = name;
+	}
+	Folder.prototype.getRoot = function(){
+		var root = this;
+		while(root.parent){
+			root = root.parent;
+		}
+		return root;
+	}
+	Folder.prototype.add = function(node, silent){
+
+		var isMove = false;
+
+		if(node.parent){
+			isMove = true;
+
+			if(node.parent == this){
+				return;
+			}
+			node.parent.remove(node, true);
+		}
+		this.children.push( node );
+
+		if(isMove){
+			var parentPrev = node.parent;
+		}
+		node.parent = this;
+
+		if( ! silent){
+			if( isMove ){
+				this.getRoot().trigger('moved:node', this, parentPrev, node);
+			}else{
+				this.getRoot().trigger('added:node', this, node);
+			}
+		}
+	}
+	Folder.prototype.remove = function(node, silent){
+		if( _.isString(node) ){
+			node = this.find(node);
+		}
+		// call before the node is really removed
+		// because we still need to get node path 
+		if( ! silent){
+
+			this.getRoot().trigger('removed:node', this, node);
+		}
+
+		node.parent = null;
+		_.without( this.children, node);
+
+	}
+	// traverse the folder
+	Folder.prototype.traverse = function(callback){
+		callback && callback( this );
+		_.each( this.children, function(child){
+			child.traverse( callback );
+		} )
+	}
+	// get the folder's absolute path
+	Folder.prototype.getPath = function(){
+		if( ! this.parent ){
+			return this.name + '/';
+		}
+		return this.parent.getPath() + this.name + '/';
+	}
+	// find a folder or file 
+	Folder.prototype.find = function(path){
+		var root = this;
+		// abosolute path
+		if( path.charAt(0) == '/'){
+			path = path.substring(1);
+			root = exports.root;
+		}
+		return _.reduce( _.compact(path.split('/')), function(node, name){
+			if( ! node){
+				return;
+			}
+			if( name == '..'){
+				return node.parent;
+			}
+			else if( name =='.'){
+				return node;
+			}
+			else{
+				return _.find(node.children, function(item){
+					return item.name==name
+				});
+			}
+		}, root);
+	}
+	Folder.prototype.createFolder = function(path, silent){
+		path = _.compact(path.split('/'));
+		var ret = _.reduce(path, function(node, name){
+			var folder = node.find(name);
+			if( !folder ){
+				folder = new Folder(name);
+				node.add( folder, silent );
+			}
+			return folder;
+		}, this);
+
+		if( ! silent){
+
+			this.getRoot().trigger('created:folder', this, ret);
+		}
+		return ret;
+	}
+	Folder.prototype.createFile = function(path, asset, silent){
+		dir = _.compact(path.split('/'));
+		var fileName = dir.pop();
+		var folder = this.createFolder(dir.join('/'), silent);
+		var file = folder.find(fileName);
+		if( ! file){
+			file = new File( fileName, asset );
+
+			folder.add( file, silent );
+
+			if( ! silent){
+				this.getRoot().trigger('created:file', this, file);
+			}
+		}
+
+		return file;
+	}
+
+	var Root = function(){
+		Folder.call(this);
+	};
+	Root.prototype = new Folder;
+	Root.prototype.getPath = function(){
+		return '/';
+	}
+
+	exports.root = new Root();
+	exports.Folder = Folder;
+	exports.File = File;
 })
 
 //========================
@@ -665,7 +1203,7 @@ define("Core/Assets/Material-debug", [], function(require, exports, module){
 // Save a copy of node instance, it will be packed as a zip file when storing on the disk.
 // file extension, prefeb
 //========================
-define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug"], function(require, exports, module){
+define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./Shader-debug", "./FileSystem-debug", "./Texture-debug", "./TextureCube-debug", "./Util-debug"], function(require, exports, module){
 
 	var Geometry = require('./Geometry-debug');
 	var Material = require('./Material-debug');
@@ -902,6 +1440,9 @@ define("Core/Assets/Prefab-debug", ["./Geometry-debug", "./Material-debug", "./T
 
 		var rootCopied = Util.deepCloneNode(root);
 
+		// have the same host
+		rootCopied.host = root.host;
+
 		rootCopied.traverse( function(nodeCopied){
 			var name = nodeCopied.name,
 				node = root.getChildByName(name, true);
@@ -1106,6 +1647,7 @@ define("Core/Assets/Texture-debug", [], function(require, exports, module){
 		return {
 			'Texture Asset' : {
 				type : 'layer',
+				'class' : 'texture',
 				sub : {
 					'name' : {
 						type : 'input',
@@ -1613,227 +2155,11 @@ define("Core/Assets/Util-debug", [], function(require, exports, module){
 
 })
 
-//=====================
-// FileSystem.js
-// simulate a file system simply
-// Todo : add FileSystem api support and save data on hdd
-//=====================
-define("Core/Assets/FileSystem-debug", [], function(require, exports, module){
-
-	var File = function(name, asset){
-
-		this.type = 'file';
-		this.name = name || '';
-		
-		this.data = null;
-		if(asset){
-			this.attach( asset, true );
-		}
-
-		this.parent = null;
-	}
-
-	_.extend(File.prototype, Backbone.Events);
-
-	File.prototype.getRoot = function(){
-		var root = this;
-		while(root.parent){
-			root = root.parent;
-		}
-		return root;
-	}
-	File.prototype.setName = function(name, silent){
-		if( ! silent){
-			// trigger before it is really updated
-			this.getRoot().trigger('updated:name', this, name);
-		}
-
-		this.name = name;
-	
-	}
-	File.prototype.attach = function(asset, silent){
-		this.data = asset;
-		asset.host = this;
-
-		if( ! silent){
-			this.getRoot().trigger('attached:asset', this, asset);
-		}
-	}
-	File.prototype.detach = function(silent){
-		this.data = null;
-		asset.host = null;
-
-		if( ! silent){
-			this.getRoot().trigger('detached:asset', this);
-		}
-	}
-	File.prototype.getPath = function(){
-		if( ! this.parent ){
-			return this.name;
-		}
-		return this.parent.getPath() + this.name;
-	}
-
-	var Folder = function(name){
-
-		this.name = name || '';
-
-		this.type = 'folder'
-
-		this.children = [];
-	}
-
-	_.extend(Folder.prototype, Backbone.Events);
-
-	Folder.prototype.setName = function(name, silent){
-		if( ! silent){
-			// trigger before it is really updated
-			this.getRoot().trigger('updated:name', this, name);
-		}
-
-		this.name = name;
-	}
-	Folder.prototype.getRoot = function(){
-		var root = this;
-		while(root.parent){
-			root = root.parent;
-		}
-		return root;
-	}
-	Folder.prototype.add = function(node, silent){
-
-		var isMove = false;
-
-		if(node.parent){
-			isMove = true;
-
-			if(node.parent == this){
-				return;
-			}
-			node.parent.remove(node, true);
-		}
-		this.children.push( node );
-
-		if(isMove){
-			var parentPrev = node.parent;
-		}
-		node.parent = this;
-
-		if( ! silent){
-			if( isMove ){
-				this.getRoot().trigger('moved:node', this, parentPrev, node);
-			}else{
-				this.getRoot().trigger('added:node', this, node);
-			}
-		}
-	}
-	Folder.prototype.remove = function(node, silent){
-		if( _.isString(node) ){
-			node = this.find(node);
-		}
-		// call before the node is really removed
-		// because we still need to get node path 
-		if( ! silent){
-
-			this.getRoot().trigger('removed:node', this, node);
-		}
-
-		node.parent = null;
-		_.without( this.children, node);
-
-	}
-	// traverse the folder
-	Folder.prototype.traverse = function(callback){
-		callback && callback( this );
-		_.each( this.children, function(child){
-			child.traverse( callback );
-		} )
-	}
-	// get the folder's absolute path
-	Folder.prototype.getPath = function(){
-		if( ! this.parent ){
-			return this.name + '/';
-		}
-		return this.parent.getPath() + this.name + '/';
-	}
-	// find a folder or file 
-	Folder.prototype.find = function(path){
-		var root = this;
-		// abosolute path
-		if( path.charAt(0) == '/'){
-			path = path.substring(1);
-			root = exports.root;
-		}
-		return _.reduce( _.compact(path.split('/')), function(node, name){
-			if( ! node){
-				return;
-			}
-			if( name == '..'){
-				return node.parent;
-			}
-			else if( name =='.'){
-				return node;
-			}
-			else{
-				return _.find(node.children, function(item){
-					return item.name==name
-				});
-			}
-		}, root);
-	}
-	Folder.prototype.createFolder = function(path, silent){
-		path = _.compact(path.split('/'));
-		var ret = _.reduce(path, function(node, name){
-			var folder = node.find(name);
-			if( !folder ){
-				folder = new Folder(name);
-				node.add( folder, silent );
-			}
-			return folder;
-		}, this);
-
-		if( ! silent){
-
-			this.getRoot().trigger('created:folder', this, ret);
-		}
-		return ret;
-	}
-	Folder.prototype.createFile = function(path, asset, silent){
-		dir = _.compact(path.split('/'));
-		var fileName = dir.pop();
-		var folder = this.createFolder(dir.join('/'), silent);
-		var file = folder.find(fileName);
-		if( ! file){
-			file = new File( fileName, asset );
-
-			folder.add( file, silent );
-
-			if( ! silent){
-				this.getRoot().trigger('created:file', this, file);
-			}
-		}
-
-		return file;
-	}
-
-	var Root = function(){
-		Folder.call(this);
-	};
-	Root.prototype = new Folder;
-	Root.prototype.getPath = function(){
-		return '/';
-	}
-
-	exports.root = new Root();
-	exports.Folder = Folder;
-	exports.File = File;
-})
-
 //==========================================
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/Assets/Importer/index-debug", ["./Binary-debug", "../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug", "./Collada-debug", "./JSON-debug", "./Zip-debug", "./Image-debug", "./DDS-debug"], function(require, exports, module){
+define("Core/Assets/Importer/index-debug", ["./Binary-debug", "../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Shader-debug", "../FileSystem-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug", "./Collada-debug", "./JSON-debug", "./Zip-debug", "./Image-debug", "./DDS-debug"], function(require, exports, module){
 
 	exports.Binary 	= require('./Binary-debug');
 	exports.Collada = require('./Collada-debug');
@@ -1849,7 +2175,7 @@ define("Core/Assets/Importer/index-debug", ["./Binary-debug", "../Geometry-debug
 // import from binary file
 //=======================
 
-define("Core/Assets/Importer/Binary-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+define("Core/Assets/Importer/Binary-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Shader-debug", "../FileSystem-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
 
 	var binaryLoader = new THREE.BinaryLoader();
 	var GeometryAsset = require('../Geometry-debug'),
@@ -1909,7 +2235,7 @@ define("Core/Assets/Importer/Binary-debug", ["../Geometry-debug", "../Prefab-deb
 // import from collada file
 //=========================
 
-define("Core/Assets/Importer/Collada-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+define("Core/Assets/Importer/Collada-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Shader-debug", "../FileSystem-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
 
 	var colladaLoader = new THREE.ColladaLoader();
 	var GeometryAsset = require('../Geometry-debug'),
@@ -1995,7 +2321,7 @@ define("Core/Assets/Importer/Collada-debug", ["../Geometry-debug", "../Prefab-de
 // import from json file
 //=========================
 
-define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Shader-debug", "../FileSystem-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
 
 	var jsonLoader = new THREE.JSONLoader();
 	var GeometryAsset = require('../Geometry-debug'),
@@ -2012,10 +2338,12 @@ define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug
 			var material = createMaterial(mat, function(name){
 				
 				var file = folder.find( name )
-				if( ! asset ){
+				if( ! file ){
 					file = folder.find( 'textures/'+name);
 				}
-				return file.data.getInstance();
+				if( file ){
+					return file.data.getInstance();
+				}
 			})
 			materialList.push( material );
 			//create asset;
@@ -2194,7 +2522,7 @@ define("Core/Assets/Importer/JSON-debug", ["../Geometry-debug", "../Prefab-debug
 })
 
 
-define("Core/Assets/Importer/Zip-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
+define("Core/Assets/Importer/Zip-debug", ["../Geometry-debug", "../Prefab-debug", "../Material-debug", "../Shader-debug", "../FileSystem-debug", "../Texture-debug", "../TextureCube-debug", "../Util-debug"], function(require, exports, module){
 
 	var jsonLoader = new THREE.JSONLoader();
 	var GeometryAsset = require('../Geometry-debug'),
@@ -3404,6 +3732,10 @@ define("Core/UIBase/Select-debug", [], function(require, exports, module){
 					this.trigger('change', item);		
 				}
 			}, this)
+
+			this.on('dispose', function(){
+				$('.lblend-select-dropdown-list').remove();
+			})
 
 			this.render();
 		},
@@ -5046,7 +5378,7 @@ define("Core/UIBase/Mixin/OutputPin-debug", ["./Pin-debug"], function(require, e
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Util-debug", "./Assets/FileSystem-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./Assets/Importer/Image-debug", "./Assets/Importer/DDS-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Image-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug"], function(require, exports, module){
+define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Shader-debug", "./Assets/FileSystem-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Util-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./Assets/Importer/Image-debug", "./Assets/Importer/DDS-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Image-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug"], function(require, exports, module){
 
 	exports.Hub 	= require('./Hub-debug');
 	exports.svg 	= require('./svg-debug');

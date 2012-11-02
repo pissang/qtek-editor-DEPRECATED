@@ -23,13 +23,16 @@ define(function(require, exports, module){
 				if( ! file ){
 					file = folder.find( 'textures/'+name);
 				}
-				return file.data.getInstance();
+				if( file ){
+					return file.data.getInstance();
+				}
 			})
-			materialList.push( material );
 			//create asset;
 			var matAsset = MaterialAsset.create( material );
 			var file = matFolder.createFile(matAsset.name, matAsset);
-
+			// the material has been tranformed to Shader Material
+			// in the MaterialAsset
+			materialList.push( matAsset.data );
 		})
 		if( ! json.buffers ){
 			jsonLoader.createModel(json, function(geo){

@@ -8,13 +8,13 @@
 	// loading libs
 	$LAB.setOptions({'BasePath':libPath})
 		.script('sea.js')
-		.script('three.min.js')
+		.script('three.js')
 		.script('loader/ColladaLoader.js')
 		.script('jquery.min.js').wait()
 		// jquery plugins
-		.script('colorpicker/colorpicker.js')
 		.script('jquery.mousewheel.js')
 		.script('jquery-ui.min.js')
+		.script('spectrum.js')
 		
 		.script('jquery.layout.min.js').wait()
 		.script('underscore.js')

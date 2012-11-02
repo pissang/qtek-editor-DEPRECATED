@@ -48,9 +48,17 @@ define(function(require, exports, module){
 
 			// create material asset file
 			var matFolder = folder.createFolder('materials');
-			_.each(materials, function(material){
+			_.each(materials, function(material, name){
 				var matAsset = MaterialAsset.create( material );
 				var file = matFolder.createFile(matAsset.name, matAsset);
+				
+				materials[name] = matAsset.data;
+			})
+			// the material has to be reseted
+			root.traverse(function(_node){
+				if(_node.material){
+					_node.material = materials[_node.material.name];
+				}
 			})
 			// create prefab asset file
 			var prefab = PrefabAsset.create( root );

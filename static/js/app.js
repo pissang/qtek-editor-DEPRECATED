@@ -9,7 +9,7 @@ define(function(require){
 	var Layouts = require('./Modules/Layouts');
 
 	var $Main = Layouts[0].init($('#App'));
-
+	$('.ui-layout-container').css('overflow', 'visible');
 	var $regions = $Main.find('.region');
 
 	$regions.focus(function(){

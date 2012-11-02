@@ -512,9 +512,9 @@ define(function(require, exports, module){
 			})
 
 			// !! if the treeview is not used anymore 
-			// must trigger dispose event manually
+			// must trigger disposed event manually
 			treeInstances.push(this);
-			this.on('dispose', function(){
+			this.on('disposed', function(){
 				_.without(treeInstances, self);
 			})
 		},

@@ -51,7 +51,7 @@ define(function(require, exports, module){
 			case 'layer':
 				itemView = new UIBase.Layer.View;
 				itemView.setName(name);
-				itemView.$el.addClass('inspector-'+name);
+				itemView.$el.addClass('inspector-'+item['class']);
 
 				_.each(item.sub, function(subItem, name){
 					itemView.appendView( createView(name, subItem) );

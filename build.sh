@@ -1,4 +1,7 @@
 #!/bin/sh
+
+#use spm to build core code
+#https://github.com/seajs/spm
 cd static/js/Core
 spm build
 
@@ -10,21 +13,21 @@ cd ../../
 
 cat css/*.css > ../static-dist/css/main.css
 
-cp -r js/Modules ../static-dist/js/
+cp -rf js/Modules ../static-dist/js/
 
-cp js/lib/LAB.min.js ../static-dist/js/lib/LAB.min.js
+cp -f js/lib/LAB.min.js ../static-dist/js/lib/LAB.min.js
 
 [ -d ../static-dist/js/lib/zip ] || mkdir ../static-dist/js/lib/zip/
-cp js/lib/zip/inflate.js ../static-dist/js/lib/zip/inflate.js
-cp js/lib/zip/deflate.js ../static-dist/js/lib/zip/deflate.js
+cp -f js/lib/zip/inflate.js ../static-dist/js/lib/zip/inflate.js
+cp -f js/lib/zip/deflate.js ../static-dist/js/lib/zip/deflate.js
 
-#todo add js/lib/colorpicker/colorpicker.js
 cat js/lib/sea.js\
 	js/lib/three.min.js\
 	js/lib/loader/ColladaLoader.js\
 	js/lib/jquery.min.js\
 	js/lib/jquery.mousewheel.js\
 	js/lib/jquery-ui.min.js\
+	js/lib/spectrum.js\
 	js/lib/jquery.layout.min.js\
 	js/lib/underscore.js\
 	js/lib/backbone.js\
@@ -37,8 +40,8 @@ cat js/lib/sea.js\
 	js/lib/Goo.v2.js\
 	> ../static-dist/js/lib/lib.js
 
-cp js/boot-dist.js ../static-dist/js/boot.js
-cp js/app.js ../static-dist/js/app.js
+cp -f js/boot-dist.js ../static-dist/js/boot.js
+cp -f js/app.js ../static-dist/js/app.js
 
-cp -r img ../static-dist/
-cp index-dist.html ../static-dist/index.html
+cp -rf img ../static-dist/
+cp -f index-dist.html ../static-dist/index.html

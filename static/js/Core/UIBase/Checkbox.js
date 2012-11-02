@@ -29,7 +29,7 @@ define(function(require, exports, module){
 				this.model = new Model;
 			}
 			var self = this;
-
+			
 			this.render();
 		},
 

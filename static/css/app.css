@@ -8,7 +8,7 @@ body{
 	font-size:10px;
 	margin:0px;
 	/*overflow: hidden;*/
-	background-color:#191919;
+	background-color:#2F2947;
 	overflow: hidden;
 	height:100%;
 }
@@ -63,7 +63,7 @@ h1{
 	height:100%;
 }
 .region.focus{
-	border:1px solid #FF8F00;
+	box-shadow: 0px 0px 4px #2BE232;
 }
 .region.focus .lblend-tree li.active>.lblend-tree-title{
 	background-color: #1490D6;
@@ -185,9 +185,13 @@ h1{
 	height:100%;
 	box-sizing:border-box;
 }
+#Inspector label{
+	font-weight: bold;
+	color:white;
+}
 #Inspector>.lblend-list{
 	margin:0px 5px;
-	min-width: 390px;
+	min-width: 300px;
 }
 #Inspector .lblend-layer{
 	margin-top: 4px;
@@ -202,10 +206,10 @@ h1{
 	border-radius: 5px 5px 0px 0px;
 }
 #Inspector .lblend-float{
-	width:200px;
+	width:240px;
 }
 #Inspector .lblend-vector .lblend-float{
-	width:120px;
+	width:160px;
 }
 #Inspector .lblend-checkbox,
 #Inspector .lblend-select,

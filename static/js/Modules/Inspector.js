@@ -51,10 +51,13 @@ define(function(require, exports, module){
 			case 'layer':
 				itemView = new UIBase.Layer.View;
 				itemView.setName(name);
-				itemView.$el.addClass('inspector-'+name);
+				itemView.$el.addClass('inspector-'+item['class']);
 
 				_.each(item.sub, function(subItem, name){
-					itemView.appendView( createView(name, subItem) );
+					var _view = createView(name, subItem)
+					if(_view){
+						itemView.appendView( _view );
+					}
 				})
 				break;
 			case 'input':
@@ -66,11 +69,17 @@ define(function(require, exports, module){
 			case 'select':
 				itemView = createSelectView(name, item.value, item.options, item.onchange);
 				break;
+			case 'float':
+				itemView = createFloatView(name, item.value, item.min, item.max, item.step, item.onchange);
+				break;
 			case 'boolean':
 				itemView = createBooleanView(name, item.value, item.onchange);
 				break;
 			case 'vector':
 				itemView = createVectorView(name, item.value, item.min, item.max, item.step, item.onchange);
+				break;
+			case 'color':
+				itemView = createColorView(name, item.value, item.onchange);
 				break;
 		}
 		return itemView;
@@ -154,7 +163,7 @@ define(function(require, exports, module){
 
 		var view = new UIBase.Float.View;
 		view.model.set({
-			'name' : key,
+			'name' : name,
 			'value': value,
 			'min' : min,
 			'max' : max,
@@ -191,6 +200,25 @@ define(function(require, exports, module){
 
 	function createColorView(name, value, onchange){
 		
+		var view = new UIBase.Color.View;
+
+		// adapt to native color picker format
+		if( value[0] != '#'){
+			value = '#' + value.toString(16);
+		}
+
+		view.model.set({
+			name : name,
+			color : value
+		});
+		view.model.on('change:color', function(model, val){
+
+			// adapt to native color picker format
+			val = parseInt(val.substr(1), 16);
+			onchange && onchange(val);
+		})
+
+		return view;
 	}
 
 	return {
