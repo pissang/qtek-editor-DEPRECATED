@@ -11,18 +11,18 @@ define(function(require, exports, module){
 
 		var image = new Image;
 		image.onload = function(){
+			
+			var texture = new THREE.Texture(image);
+			texture.name = name;
+			
+			var texFolder = folder.createFolder('textures');
+			var texAsset = TextureAsset.create(texture);
+
+			texFolder.createFile(texAsset.name, texAsset);
+
 			callback && callback(texAsset);
 		}
 		image.src = data;
-
-		var texture = new THREE.Texture(image);
-		texture.name = name;
-		
-		var texFolder = folder.createFolder('textures');
-		var texAsset = TextureAsset.create(texture);
-
-		texFolder.createFile(texAsset.name, texAsset);
-
 	}
 
 	exports.importFromFile = function(file, folder, callback){

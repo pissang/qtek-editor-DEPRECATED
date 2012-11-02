@@ -52,6 +52,9 @@ define(function(require, exports, module){
 			getCopy : function(){
 				return getCopy( this.data );
 			},
+			getThumb : function(size){
+				return getThumb( this.data, size);
+			},
 			getConfig : function(){
 				return getConfig( this.data );
 			},
@@ -208,9 +211,27 @@ define(function(require, exports, module){
 
 	function getCopy( mat ){
 
-		var mat = new THREE.ShaderMaterial();
+		return mat.clone();
+	}
 
-		return clonedMaterial;
+	var previewLight = new THREE.DirectionalLight( 0xffffff );
+	previewLight.position = new THREE.Vector3(2,2,2);
+	var previewCamera = new THREE.PerspectiveCamera( 60, 1, 0.01, 10 );
+	previewCamera.position.set(0.4, 0.4, 1.6);
+	previewCamera.lookAt(new THREE.Vector3( 0, 0, 0 ));
+	var previewRenderer = new THREE.WebGLRenderer( );
+	var previewScene = new THREE.Scene();
+	previewScene.add(previewLight);
+	var previewSphereGeo = new THREE.SphereGeometry( 0.73, 10, 10 );
+
+	function getThumb( mat, size){
+		var mesh = new THREE.Mesh(previewSphereGeo, getCopy(mat) );
+		previewScene.add(mesh);
+		previewRenderer.render(previewScene, previewCamera);
+		previewRenderer.setSize(size, size);
+		previewScene.remove(mesh);
+
+		return previewRenderer.domElement.toDataURL();
 	}
 
 	function getConfig( material ){

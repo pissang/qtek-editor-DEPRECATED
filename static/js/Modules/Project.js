@@ -99,6 +99,7 @@ define(function(require, exports, module){
 					var base64Src = node.data.getThumb(14);
 					var image = new Image();
 					image.src = base64Src;
+					image.className = 'asset-thumb-'+node.data.type;//for default asset thumb
 					treeNode.icon = image;
 				}else{
 					treeNode.icon = 'icon-project-file icon-small';
