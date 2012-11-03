@@ -178,6 +178,8 @@ h1{
 	margin-top: 2px;
 	float: left;
 	margin-right: 5px;
+	width:14px;
+	height:14px;
 }
 #Project .icon-small{
 	margin-right: 5px;	
@@ -224,7 +226,7 @@ h1{
 	border-radius: 5px 5px 0px 0px;
 }
 #Inspector .lblend-float{
-	width:240px;
+	width:100%;
 }
 #Inspector .lblend-vector .lblend-float{
 	width:160px;
@@ -242,26 +244,42 @@ h1{
 	padding:5px;
 	margin:0px;
 	box-sizing:border-box;
+	min-height:30px;
+}
+
+/*Inspector layout*/
+#Inspector .lblend-texture-path,
+#Inspector .lblend-input input,
+#Inspector .lblend-checkbox input,
+#Inspector .lblend-select-button,
+#Inspector .lblend-vector .lblend-list,
+#Inspector .lblend-color-picker{
+	float:right;
+}
+
+#Inspector .lblend-texture-path{
+	min-width: 50px;
+	height:18px;
 }
 
 #Inspector .lblend-input input{
-
 	line-height: 20px;
-	margin-top: 5px;
+	margin-top: -3px;
 	padding-left: 10px;
 	box-shadow: 1px 1px 5px black inset;
 	border-radius: 4px;
 }
 
 /* texture asset properties*/
-.inspector-texture .lblend-image{
+#Inspector .inspector-texture .lblend-image{
 	border: none;
+	height:220px;
 }
 .inspector-texture .lblend-image-label{
 	display: none;
 }
 .inspector-texture .lblend-image img{
-	width:200px;
+	height:200px;
 	margin-left: 20px;
 }
 /****transform的属性编辑****/

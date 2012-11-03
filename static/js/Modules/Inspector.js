@@ -51,7 +51,9 @@ define(function(require, exports, module){
 			case 'layer':
 				itemView = new UIBase.Layer.View;
 				itemView.setName(name);
-				itemView.$el.addClass('inspector-'+item['class']);
+				if( item['class'] ){
+					itemView.$el.addClass('inspector-'+item['class']);
+				}
 
 				_.each(item.sub, function(subItem, name){
 					var _view = createView(name, subItem)
@@ -219,6 +221,9 @@ define(function(require, exports, module){
 		view.collection.on('change:value', function(model){
 			onchange && onchange(model.get('name'), model.get('value'));
 		})
+
+		// add float clear
+		view.$el.append('<div style="clear:both"></div>')
 
 		return view;
 	}

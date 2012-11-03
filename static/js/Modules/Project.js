@@ -96,7 +96,7 @@ define(function(require, exports, module){
 
 				if( node.data.getThumb ){
 					// use asset thumb
-					var base64Src = node.data.getThumb(14);
+					var base64Src = node.data.getThumb(20);
 					var image = new Image();
 					image.src = base64Src;
 					image.className = 'asset-thumb-'+node.data.type;//for default asset thumb

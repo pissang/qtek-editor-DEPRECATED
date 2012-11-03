@@ -57,7 +57,7 @@ define(function(require, exports){
 			mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, true );
 
 			setInterval(function(){
-				// render();
+				render();
 			}, 20);
 
 			init();

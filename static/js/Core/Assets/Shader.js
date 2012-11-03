@@ -6,7 +6,9 @@
 // Shader Asset is part of Material Asset
 // the uniforms in Shader Assets has no specific value,
 // it defines the config of the each uniform, like min value, max value and so on
-// only when it is attached to the material, the values will be used;
+// only after attached to the material, the values will be used;
+//
+// so DONT DIRECTLY USE THE SHADER DATA, ITS ONLY A TEMPLATE!!
 //========================
 define(function(require, exports, module){
 

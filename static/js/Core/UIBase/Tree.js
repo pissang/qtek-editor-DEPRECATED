@@ -243,7 +243,6 @@ define(function(require, exports, module){
 
 		var html = _.template('<li class="lblend-tree-folder">\
 						<span class="lblend-tree-title" draggable="true">\
-							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
 							<span class="lblend-tree-icon"></span>\
 							<a>{{name}}</a>\
 						</span>\
@@ -312,14 +311,6 @@ define(function(require, exports, module){
 
 	Folder.prototype.toggleCollapase = function(){
 		this.$el.toggleClass('collapse');
-		var $btn = this.$el.find('.button-toggle-collapse');
-		if(this.$el.hasClass('collapse')){
-			$btn.removeClass('icon-unfold');
-			$btn.addClass('icon-fold');
-		}else{
-			$btn.removeClass('icon-fold');
-			$btn.addClass('icon-unfold');
-		}
 	}
 
 	Folder.prototype.traverse = function(callback){
@@ -410,7 +401,7 @@ define(function(require, exports, module){
 		}
 
 		_.each(this.children, function(child){
-			this.children.push( child.toJSON() );
+			item.children.push( child.toJSON() );
 		})
 		return item;
 	}

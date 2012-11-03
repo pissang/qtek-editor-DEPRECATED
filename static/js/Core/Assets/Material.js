@@ -91,7 +91,7 @@ define(function(require, exports, module){
 			'refractionRatio' : 'refractionRatio'
 		},
 		'lambert' : {
-			'color' : 'color',
+			'diffuse' : 'color',
 			'ambient' : 'ambient',
 			'emissive' : 'emissive',
 			'map' : 'map',
@@ -102,7 +102,7 @@ define(function(require, exports, module){
 			'refractionRatio' : 'refractionRatio'
 		},
 		'basic' : {
-			'color' : 'color',
+			'diffuse' : 'color',
 			'map' : 'map',
 			'lightMap' : 'lightMap',
 			'specularMap' : 'specularMap',
@@ -123,11 +123,6 @@ define(function(require, exports, module){
 				})
 
 				newMat = new THREE.ShaderMaterial;
-				newMat.map = mat.map ? true : false;
-				newMat.lightMap = mat.lightMap ? true : false;
-				newMat.specularMap = mat.specularMap ? true : false;
-				newMat.bumpMap = mat.bumpMap ? true : false;
-				newMat.normalMap = mat.normalMap ? true : false;
 
 				bindShader(newMat, shader);
 			}
@@ -137,9 +132,6 @@ define(function(require, exports, module){
 					shader.uniforms[uName].value = mat[pName]
 				})
 				newMat = new THREE.ShaderMaterial;
-				newMat.map = mat.map ? true : false;
-				newMat.lightMap = mat.lightMap ? true : false;
-				newMat.specularMap = mat.specularMap ? true : false;
 				
 				bindShader(newMat, shader);
 			}
@@ -149,9 +141,6 @@ define(function(require, exports, module){
 					shader.uniforms[uName].value = mat[pName]
 				})
 				newMat = new THREE.ShaderMaterial;
-				newMat.map = mat.map ? true : false;
-				newMat.lightMap = mat.lightMap ? true : false;
-				newMat.specularMap = mat.specularMap ? true : false;
 				
 				bindShader(newMat, shader);
 			}
@@ -178,9 +167,13 @@ define(function(require, exports, module){
 	function read(m){
 
 		var material = new THREE.ShaderMaterial;
-		var shader = FS.root.find(m.shader);
+		var shader = ShaderAsset.create();
+		shader.import(material.shader);
+
 		if(shader){
 			bindShader( material, shader);
+		}else{
+			console.warn('shader '+m.shader+' not found');
 		}
 
 		return material;
@@ -196,6 +189,22 @@ define(function(require, exports, module){
 		material.uniforms = shader.uniforms;
 		material.fragmentShader = shader.fragmentShader;
 		material.vertexShader = shader.vertexShader;
+		// enable the build-in materials map 
+		_.each(shader.uniforms, function(u, name){
+			if(u.type == 't'){
+				if(name == 'map' ||
+					name == 'lightMap' ||
+					name == 'specularMap' ||
+					name == 'envMap' ||
+					name == 'normalMap' ||
+					name == 'bumpMap'){
+
+					if(u.value){
+						material[name] = true;
+					}
+				}
+			}
+		})
 		material.needsUpdate = true;
 	}
 
@@ -203,7 +212,7 @@ define(function(require, exports, module){
 
 		var json = {
 			name : material.name,
-			shader : this.shader.host.getPath()
+			shader : this.shader.export(),
 		}
 		
 		return json;
@@ -211,9 +220,17 @@ define(function(require, exports, module){
 
 	function getCopy( mat ){
 
-		return mat.clone();
+		var clonedMat = new THREE.ShaderMaterial();
+		clonedMat.lights = true;
+		clonedMat.name = mat.name;
+
+		var shader = ShaderAsset.getCopy( mat.shader );
+		bindShader(clonedMat, shader);
+		
+		return clonedMat;
 	}
 
+	// some ugly codes
 	var previewLight = new THREE.DirectionalLight( 0xffffff );
 	previewLight.position = new THREE.Vector3(2,2,2);
 	var previewCamera = new THREE.PerspectiveCamera( 60, 1, 0.01, 10 );
@@ -225,6 +242,7 @@ define(function(require, exports, module){
 	var previewSphereGeo = new THREE.SphereGeometry( 0.73, 10, 10 );
 
 	function getThumb( mat, size){
+		// get a clean copy of material
 		var mesh = new THREE.Mesh(previewSphereGeo, getCopy(mat) );
 		previewScene.add(mesh);
 		previewRenderer.render(previewScene, previewCamera);
@@ -276,9 +294,12 @@ define(function(require, exports, module){
 
 						bindShader( material, ShaderAsset.buildin[value].getInstance() );
 					}else{
-						
+						var shader = FS.root.find(value);
+						if( ! shader){
+							console.warn( 'shader '+value+' not exist');
+						}
 						//query the shader;
-						bindShader( material, FS.root.find(value) );
+						bindShader( material,  shader);
 					}
 
 					// update Shader Asset Part
@@ -362,7 +383,9 @@ define(function(require, exports, module){
 							if(name == 'map' ||
 								name == 'lightMap' ||
 								name == 'specularMap' ||
-								name == 'envMap'){
+								name == 'envMap' ||
+								name == 'normalMap' ||
+								name == 'bumpMap'){
 
 								material[name] = true;
 								material.needsUpdate = true;
@@ -395,6 +418,7 @@ define(function(require, exports, module){
 		})
 		
 		return {
+
 			'Material Asset' : {
 				type : 'layer',
 				sub : props

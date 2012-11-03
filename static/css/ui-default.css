@@ -5,7 +5,7 @@
 	background-color:#aaaaaa;
 	text-align:center;
 	border-radius:5px;
-	margin :5px;
+	margin:8px 0px;
 	line-height:20px;
 	cursor: pointer;
 	box-shadow : 1px 1px 3px black inset;
@@ -87,7 +87,6 @@
 	color:rgb(202, 202, 202);
 }
 .lblend-checkbox label{
-	margin-left: 10px;
 }
 /* input 组件*/
 .lblend-input-label{
@@ -345,6 +344,8 @@
 }
 .lblend-tree-folder>.lblend-tree-title{
 	font-weight: bold;
+}
+.lblend-tree-file{
 }
 
 /*****************mixins*************/
