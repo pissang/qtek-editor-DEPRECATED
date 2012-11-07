@@ -8,16 +8,25 @@ define(function(require, exports){
 	var Panel = require('../Core/UIBase/Panel');
 	var hub = require('../Core/Hub').getInstance();
 	var Assets = require('../Core/Assets/index');
-	var MouseEventDispatcher = require('./MouseEventDispatcher');
+	var MouseEventDispatcher = require('../Core/MouseEventDispatcher');
 
 	var FS = require('../Core/Assets/FileSystem');
+
+	var Helpers = require('../Core/Helpers/index');
 
 
 	var renderer,
 		scene,
+
+		// default camera light and material
 		camera,
+		defaultLight,
+		defaultMaterial,
+
 		view,
 		controls,
+
+		manipulatorHelper,
 
 		mouseEventDispatcher;
 
@@ -49,6 +58,10 @@ define(function(require, exports){
 			camera = new THREE.PerspectiveCamera( 45, width/height, 0.1, 10000 );
 			camera.__helper__ = true;
 
+			defaultMaterial = new THREE.MeshLambertMaterial();
+			defaultLight = new THREE.DirectionalLight(0xffffff);
+			defaultLight.position.set(1, 1, 0);
+			
 			//scene
 			scene = new THREE.Scene();
 			scene.name = 'scene';
@@ -56,8 +69,11 @@ define(function(require, exports){
 			//mouse event dispatcher
 			mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, true );
 
+			//manipulator helper
+			manipulatorHelper = Helpers.Manipulator.getInstance( renderer, camera );
+
 			setInterval(function(){
-				// render();
+				render();
 			}, 20);
 
 			init();
@@ -101,8 +117,7 @@ define(function(require, exports){
 	function init(){
 
 		groundHelper = helpers.ground();
-		// transform helper
-		transformHelper.init();
+
 		// 初始化鼠标控制
 		initMouseControl();
 		// 
@@ -119,17 +134,52 @@ define(function(require, exports){
 		camera.lookAt(new THREE.Vector3(0,0,0));
 		camera.updateMatrix();
 
-		// 场景拖拽
 		var offset = new THREE.Vector3();
-		scene.on('dragstart', function(e){
-			hub.trigger('select:node', e.target);
+		scene.on('mousedown', function(e){
+			hub.trigger('select:node', e.sourceTarget);
 		})
-		scene.on('drag', function(e){
+	}
 
-		})
-		scene.on('drop', function(e){
+	// set default light and material when 
+	// there is no light in the scene
 
+	// todo : need to move this part to WebGLRenderer
+	function setDefaultScene(){
+		// there is no light in the scene
+		if(scene.__lights.length == 0){
+			scene.add(defaultLight);
+		}
+		scene.traverse(function(object){
+			if( object instanceof THREE.Mesh && ! object.material){
+				object.material = defaultMaterial;
+			}
 		})
+
+	}
+
+	function resetScene(){
+		scene.remove(defaultLight);
+
+		//remove default material
+		scene.traverse(function(object){
+			if(object.material && object.material  == defaultMaterial){
+				object.material = null;
+			}
+		})
+	}
+
+	function render(){
+		// clear
+		renderer.clear(true, true, true);
+		
+		// main scene pass
+		setDefaultScene();
+		renderer.render(scene, camera);
+		resetScene();
+
+		// 清除深度缓存，color buffer就会直接覆盖上去
+		renderer.clear(false, true, false);
+		manipulatorHelper.render( renderer, camera);
 	}
 
 	// 
@@ -159,34 +209,55 @@ define(function(require, exports){
 					mouseEventDispatcher.updateScene();
 				}
 				else if(_node instanceof THREE.Light){
-					// light数量变了，因此需要重新build一遍所有material的program
-					// (THREE.js中light是写死在shader里的)
+					
 					// https://github.com/mrdoob/three.js/issues/598
-					// （是否需要改成deferred lighting？
 					scene.traverse( function(node){
 						if( node.material ){
 							node.material.needsUpdate = true;
 						}
 					})
-					//创建辅助显示的helper
-					if( _node instanceof THREE.PointLight ){
-						var helper = helpers['pointLight'](_node);
-					}
-					else if(_node instanceof THREE.DirectionalLight){
-						var helper = helpers['directionalLight'](_node);
-					}
-					else if(_node instanceof THREE.SpotLight){
-						var helper = helpers['spotLight'](_node);
-					}
 
 					lights.push(_node);
 				}
 				else if(_node instanceof THREE.Camera){
 
 					hub.trigger('active:camera', _node);
-					var helper = helpers['camera'](_node);
-					cameras.push(_node);
+
 				}
+
+				_node.on('updated:position', function(position){
+					if( position.x){
+						hub.trigger('update:node', 'position.x', position.x, true);
+					}
+					if( position.y){
+						hub.trigger('update:node', 'position.y', position.y, true);
+					}
+					if( position.z){
+						hub.trigger('update:node', 'position.z', position.z, true);
+					}
+				}, _node)
+				_node.on('updated:rotation', function(rotation){
+					if( rotation.x){
+						hub.trigger('update:node', 'rotation.x', rotation.x, true);
+					}
+					if( rotation.y){
+						hub.trigger('update:node', 'rotation.y', rotation.y, true);
+					}
+					if( rotation.z){
+						hub.trigger('update:node', 'rotation.z', rotation.z, true);
+					}
+				}, _node)
+				_node.on('updated:scale', function(scale){
+					if( scale.x){
+						hub.trigger('update:node', 'scale.x', scale.x, true);
+					}
+					if( scale.y){
+						hub.trigger('update:node', 'scale.y', scale.y, true);
+					}
+					if( scale.z){
+						hub.trigger('update:node', 'scale.z', scale.z, true);
+					}
+				}, _node)
 			})
 			
 			if( ! silent){
@@ -251,9 +322,6 @@ define(function(require, exports){
 				return;
 			}
 			selectedNode = node;
-
-			// update bounding box
-			transformHelper.updateBoundingBox( node );
 			
 			if( ! silent){
 				hub.trigger('selected:node', node);
@@ -362,8 +430,21 @@ define(function(require, exports){
 
 		hub.on('update:node', function(node, query, value, silent){
 
-			var node = getNode(node);
+			var node = Assets.Util.findSceneNode( node );
 			hub.trigger('update:object', node, query, value, silent);
+
+			if( ! silent){
+				//dispatch event to single node
+				if(query.indexOf('position.') == 0){
+					node.trigger('updated:position', query, value);
+				}
+				else if(query.indexOf('rotation.') == 0){
+					node.trigger('updated:rotation', query, value);
+				}
+				else if(query.indexOf('scale.') == 0){
+					node.trigger('updated:scale', query, value);
+				}
+			}
 		})
 
 		hub.on('update:material', function( mat, query, value, silent ){
@@ -381,19 +462,6 @@ define(function(require, exports){
 		} )
 	}
 
-
-	function render(){
-		// clear
-		renderer.clear(true, true, true);
-		// main scene pass
-		renderer.render(scene, camera);
-		// 清除深度缓存，color buffer就会直接覆盖上去
-		renderer.clear(false, true, false);
-		// tranform helper scene rendering pass
-		// including move rotate scale
-		transformHelper.render();
-	}
-
 	//
 	// helper的创建函数(辅助显示那些看不到的物体，比如摄像机，灯光)
 	//
@@ -407,7 +475,6 @@ define(function(require, exports){
 				wireframe : true,
 				color : 0xaaaaaa
 			} ) );
-			groundMesh.visible = false;
 			groundMesh.__helper__ = 'ground';
 			
 			scene.add(groundMesh);
@@ -461,16 +528,6 @@ define(function(require, exports){
 			var helper = new THREE.ParticleSystem( geo, material);
 			return helper;
 		},
-		'position' : function(){
-			var positionHelper = new AxisHelper();
-			positionHelper.__helper__ = 'axis';
-			positionHelper.name = 'axishelper';
-
-			return positionHelper;
-		},
-		'rotation' : function(){
-
-		},
 		'boundingBox' : function(node){
 			var bb = Assets.Util.computeBoundingBox( node );
 			var geo = new THREE.CubeGeometry( 1, 1, 1);
@@ -514,10 +571,6 @@ define(function(require, exports){
 
 			return mesh;
 		},
-		// show wireframe
-		'geometry' : function(geo){
-
-		}, 
 		'removeHelper' : function(obj, type){
 			_.each(obj.children, function(child){
 				if(child.__helper__ == type || type=='all'){
@@ -648,58 +701,6 @@ define(function(require, exports){
 		}
 	}
 	
-	//移动，旋转，缩放等操作的辅助显示
-	var transformHelper = {
-
-		scene : null,
-
-		position : null,
-
-		boundingBox : null,
-
-		init : function(){
-			this.scene = new THREE.Scene;
-			this.helper = new THREE.Object3D();
-			var positionHelper = helpers.position();
-			this.scene.add(this.helper);
-			this.helper.add(positionHelper);
-		},
-
-		updateBoundingBox : function(node){
-
-			if( this.boundingBox){
-				this.scene.remove( this.boundingBox);
-			}
-			this.boundingBox = helpers.boundingBox(node);
-			this.scene.add(this.boundingBox);
-		},
-
-		render : function(){
-			
-			if(selectedNode){
-
-				this.helper.position.set(0, 0, 0);
-				selectedNode.localToWorld(this.helper.position);
-				this.helper.rotation.copy(selectedNode.rotation);
-			
-				//tranform
-				if( this.boundingBox ){
-
-					this.boundingBox.position.set(0, 0, 0);
-					selectedNode.localToWorld(this.boundingBox.position);
-					this.boundingBox.rotation.copy(selectedNode.rotation);
-					this.boundingBox.scale.copy(selectedNode.scale);
-				}
-			}
-			else{
-			}
-			// camera是在scene节点下的，
-			// 不能直接变换scene
-			renderer.render(this.scene, camera);
-		}
-
-	}
-
 	var shaders = {
 		'lightHelper' : {
 			uniforms : {
@@ -722,54 +723,6 @@ define(function(require, exports){
 		}
 	}
 
-	///////////////////////////some functions modified from three.js
-	// 坐标轴辅助显示
-	var AxisHelper = function () {
-
-		THREE.Object3D.call( this );
-
-		var lineGeometry = new THREE.Geometry();
-		lineGeometry.vertices.push( new THREE.Vector3() );
-		lineGeometry.vertices.push( new THREE.Vector3( 0, 10, 0 ) );
-
-		var coneGeometry = new THREE.CylinderGeometry( 0, 0.5, 2.0, 5, 1 );
-
-		var line, cone;
-
-		// x
-
-		line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0xff0000 } ) );
-		line.rotation.z = - Math.PI / 2;
-		this.add( line );
-
-		cone = new THREE.Mesh( coneGeometry, new THREE.MeshBasicMaterial( { color : 0xff0000 } ) );
-		cone.position.x = 10;
-		cone.rotation.z = - Math.PI / 2;
-		this.add( cone );
-
-		// y
-
-		line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0x00ff00 } ) );
-		this.add( line );
-
-		cone = new THREE.Mesh( coneGeometry, new THREE.MeshBasicMaterial( { color : 0x00ff00 } ) );
-		cone.position.y = 10;
-		this.add( cone );
-
-		// z
-
-		line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0x0000ff } ) );
-		line.rotation.x = Math.PI / 2;
-		this.add( line );
-
-		cone = new THREE.Mesh( coneGeometry, new THREE.MeshBasicMaterial( { color : 0x0000ff } ) );
-		cone.position.z = 10;
-		cone.rotation.x = Math.PI / 2;
-		this.add( cone );
-
-	};
-	AxisHelper.prototype = Object.create( THREE.Object3D.prototype );
-
 	// 鼠标控制摄像机
 	var MouseControls = function ( object, domElement ) {
 
@@ -784,12 +737,12 @@ define(function(require, exports){
 
 		var onMouseDown = function ( e ) {
 
-			if(e.button == 0){
+			if(e.button == 2){
 
 				rotating = true;
 				start.set( e.clientX, e.clientY );
 			}
-			else if(e.button == 2 ){
+			else if(e.button == 1 ){
 
 				panning = true;
 			}

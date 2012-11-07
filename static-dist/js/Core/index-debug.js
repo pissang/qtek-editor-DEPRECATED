@@ -48,6 +48,479 @@ define("Core/svg-debug", [], function(require, exports, module){
 	}
 })
 
+//=================================
+// MouseEventDispatcher.js
+// 鼠标对场景操作的事件获取和分发中心
+//================================
+
+define("Core/MouseEventDispatcher-debug", ["./Assets/Util-debug"], function(require, exports){
+
+	var AssetUtil = require('./Assets/Util-debug');
+
+	function create( scene, camera, renderer, gpupicking){
+
+		var	gpupicking = _.isUndefined( gpupicking ) ? true : gpupicking,
+
+			width = renderer.domElement.width,
+			height = renderer.domElement.height,
+
+			pickingObjects = [],
+			picking,
+			
+			//for gpu picking
+			pickingRt,
+
+			//for ray picking
+			projector = new THREE.Projector();
+
+
+		// todo rendertarget的大小是否需要和draw buffer一样？
+		pickingRt = new THREE.WebGLRenderTarget( width, height );
+		pickingRt.generateMipmaps = false;
+
+
+		var picking = null,
+			mouseOver = null,
+			$el = $(renderer.domElement);
+		
+		// register all events listener of the canvas
+		$el.mousedown(function(e){
+			var x = e.offsetX,
+				y = e.offsetY,
+				prop = {
+					x : x,
+					y : y
+				}
+
+			var obj = _pick( x, y );
+			
+			if( ! gpupicking){
+				
+				if( obj ){	
+					var res = obj;
+					obj = res.object;
+					prop.pickinfo = res;
+				}
+			}
+
+			if( obj ){
+				MouseEvent.throw('mousedown', obj, prop)
+			}
+		})
+		.mousemove(function(e){
+
+			var x = e.offsetX,
+				y = e.offsetY,
+				prop = {
+					x : x,
+					y : y
+				}
+
+			var obj = _pick( x, y);
+			
+			if( ! gpupicking){
+
+				if( obj ){	
+					var res = obj;
+					obj = res.object;
+					prop.pickinfo = res;
+				}
+			}
+
+			if( obj ){
+
+				MouseEvent.throw('mousemove', obj, prop)
+				if( obj != mouseOver){
+					// mouse first on this object
+					MouseEvent.throw('mouseover', obj, prop)
+					if( mouseOver ){
+						MouseEvent.throw('mouseout', mouseOver, prop)
+					}
+					mouseOver = obj;
+				}
+			}
+			else if( mouseOver ){
+				// move out the object
+				MouseEvent.throw('mouseout', mouseOver, prop);
+				mouseOver = null;
+			}
+		})
+		.mouseup(function(e){
+
+			var x = e.offsetX,
+				y = e.offsetY,
+				prop = {
+					x : x,
+					y : y
+				}
+
+			var obj = _pick( x, y);
+
+			if( ! gpupicking){
+				
+				if( obj ){	
+					var res = obj;
+					obj = res.object;
+					prop.pickinfo = res;
+				}
+			}
+
+			MouseEvent.throw('mouseup', obj, prop)
+		});
+
+		// 基于GPU的拾取
+		function _pick(x, y){
+
+			var object;
+			if( gpupicking ){
+
+				_swapMaterial();
+				var pixel = new Uint8Array(4);
+				var gl = renderer.getContext();
+				renderer.render(scene, camera, pickingRt);
+				gl.readPixels(x, height-y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+				var id = (pixel[0] << 16) | (pixel[1] << 8) | (pixel[2]);
+				_swapMaterial();
+				
+				if(id){
+					object = pickingObjects[id-1];
+				}
+			}
+			else {
+
+				x = (x/width)*2-1;
+				y = -(y/height)*2+1;
+				var ray = projector.pickingRay(new THREE.Vector3(x, y, 0.5), camera);
+				var intersects = ray.intersectObjects( pickingObjects );
+
+				if( intersects.length > 0){
+					var object = intersects[0];
+				}
+			}
+			return object;
+		}
+
+		function _swapMaterial(){
+			_.each(pickingObjects, function(mesh){
+				var mat = mesh.material;
+				mesh.material = mesh.__idmaterial__;
+				mesh.__idmaterial__ = mat;
+			})
+		}
+		// 监视canvas的大小变化
+		function resize(){
+
+			if( width == renderer.domElement.width &&
+				height == renderer.domElement.height){
+				return;
+			}
+			width = renderer.domElement.width;
+			height = renderer.domElement.height;
+
+			pickingRt = new THREE.WebGLRenderTarget( width, height );
+			pickingRt.generateMipmaps = false;
+			
+		}
+
+		var interval = setInterval(function(){
+			resize();
+		}, 100);
+
+
+		//scene场景改变(添加或删除了物体)后对所有pickingobject的id的更新
+		function updateScene(){
+
+			pickingObjects = [];
+
+			scene.traverse( function(node){
+
+				if( node instanceof THREE.Mesh && node.enablepicking ){
+
+					pickingObjects.push( node );
+				}
+			})
+
+			_.each( pickingObjects, function(node, index){
+
+				// material for picking, color is the index of this node
+				if( ! node.__idmaterial__ ){
+					node.__idmaterial__ = new THREE.MeshBasicMaterial();
+				}
+				node.__idmaterial__.color = new THREE.Color( index +1 );
+			})
+		}
+
+		return {
+
+			resize : resize,
+
+			updateScene : updateScene,
+
+			dispose : function(){
+				clearInterval( interval );
+			}
+
+		}
+	}
+
+	function MouseEvent(props){
+
+		this.cancelBubble = false;
+
+		_.extend(this, props);
+	}
+
+	MouseEvent.prototype.stopPropagation = function(){
+		
+		this.cancelBubble = true;
+	}
+
+	MouseEvent.throw = function(eventType, target, props){
+
+		var e = new MouseEvent(props);
+		e.sourceTarget = target;
+
+		// enable bubble
+		while(target && !e.cancelBubble ){
+			e.target = target;
+			target.trigger(eventType, e);
+
+			target = target.parent;
+		}
+	}
+
+	return {
+
+		create : create
+	}
+} )
+
+//=============
+// Util.js
+// Assets Util
+//=============
+define("Core/Assets/Util-debug", [], function(require, exports, module){
+	
+	//
+	//分割有多个material的geometry，使得每个mesh都只有一个单独的material
+	//为了清晰，不适用three.js的face material
+	//todo morphTarget, morphColor, morphNormals, skinWeights?
+	//
+	exports.splitGeometry = function(geo){
+
+		var faces = geo.faces,
+			uvs = geo.faceVertexUvs[0],	//只支持一个uv？
+			vertices = geo.vertices,
+
+			face, materialIndex,
+			v1, v2, v3, v4,
+
+			hashMap = [], item;
+
+		for(var i = 0; i < faces.length; i++){
+			
+			face = faces[i];
+
+			materialIndex = face.materialIndex;
+			if( _.isUndefined( materialIndex ) ){
+				materialIndex = 0;
+			}
+
+			if( ! hashMap[materialIndex] ){
+				hashMap[materialIndex] = {
+					'faces' : [],
+					'vertices' : [],
+					'uvs' : []
+				}
+			}
+			item = hashMap[materialIndex];
+			item.faces.push(face);
+			if( uvs[i] ){
+				item.uvs.push(uvs[i]);
+			} 
+
+			v1 = vertices[ face.a ];
+			v2 = vertices[ face.b ];
+			v3 = vertices[ face.c ];
+			
+			v1 = processVertex(v1, item, materialIndex);
+			face.a = v1.__newindex__;
+			v2 = processVertex(v2, item, materialIndex);
+			face.b = v2.__newindex__;
+			v3 = processVertex(v3, item, materialIndex);
+			face.c = v3.__newindex__;
+
+			if( face instanceof THREE.Face4){
+				v4 = vertices[ face.d ];
+				v4 = processVertex(v4, item, materialIndex);
+				face.d = v4.__newindex__;
+			}
+				
+		}
+
+		function processVertex(v, item, materialIndex){
+			if( typeof(v.__newindex__) !== 'undefined' ){
+				item.vertices.push(v);
+				// save the index of the new vertex array
+				v.__newindex__ = item.vertices.length - 1;
+			}
+			if( typeof(v.__materialindex__) !== 'undefined' ){
+				v.__materialindex__ = materialIndex;
+			}
+			else if( v.__materialindex__ != materialIndex){
+				v = v.clone();
+				item.vertices.push(v);
+				v.__newindex__ = item.vertices.length - 1;
+				v.__materialindex__ = materialIndex;
+			}
+			return v;
+		}
+
+		var subGeo, subGeoList = [];
+
+		for(var i = 0; i < hashMap.length; i++){
+			subGeo = new THREE.Geometry();
+			subGeo.vertices = hashMap[i].vertices;
+			subGeo.faces = hashMap[i].faces;
+			subGeo.faceVertexUvs = [ hashMap[i].uvs ];
+
+			subGeo.name = geo.name+'_sub_'+i;
+
+			subGeoList.push(subGeo);
+		}
+		// clear
+		for( var i = 0; i < hashMap.length; i++){
+			for(var v=0; v < hashMap[i].vertices.length; v++){
+				delete hashMap[i].vertices[v].__newindex__;
+				delete hashMap[i].vertices[v].__materialindex__;
+			}
+		}
+		// index 0 is the faces has no materialindex
+		return subGeoList;
+	}
+
+	//
+	// 计算整个节点的boundingbox
+	//
+	exports.computeBoundingBox = function(_node){
+
+		function computeBoundingBox(node){
+
+			var bbs = [];
+			if( node.geometry ){
+
+				if( ! node.geometry.boundingBox){
+
+					node.geometry.computeBoundingBox();
+				}
+				bbs.push(node.geometry.boundingBox);
+			}
+
+			_.each(node.children, function(item, key){
+
+				var bb = computeBoundingBox(item);
+				bbs.push(bb);
+			})
+			var min = new THREE.Vector3(100000, 100000, 100000);
+			var max = new THREE.Vector3(-100000, -100000, -100000);
+			
+			_.each(bbs, function(item, key){
+
+				if(item.max.x > max.x){
+					max.x = item.max.x;
+				}
+				if(item.max.y > max.y){
+					max.y = item.max.y;
+				}
+				if(item.max.z > max.z){
+					max.z = item.max.z;
+				}
+				if(item.min.x < min.x){
+					min.x = item.min.x;
+				}
+				if(item.min.y < min.y){
+					min.y = item.min.y;
+				}
+				if(item.min.z < min.z){
+					min.z = item.min.z;
+				}
+			})
+
+			return {min : min, max : max};
+		}
+
+		return computeBoundingBox(_node);
+	}
+
+	exports.deepCloneNode = function(root){
+		var rootCopy = root.clone();
+
+		_.each(root.children, function(node){
+			rootCopy.add( exports.deepCloneNode(node) );	
+
+		})
+
+		return rootCopy;
+
+	}
+
+	exports.parseFileName = function(fileName){
+		var fileSplited = fileName.split('.'),
+			ext = fileSplited.pop(),
+			base = fileSplited.join('.');
+
+		return {
+			ext : ext,
+			base : base
+		}
+	}
+
+	// some bridge function from treeview to scene
+
+	// get path of scene node compatible to three view
+	exports.getSceneNodePath = function( node ){
+		var path = node.name;
+		while(node.parent){
+			node = node.parent;
+			path = node.name + '/' + path;
+		}
+		return path;
+	}
+
+	exports.findSceneNode = function( path, parent ){
+
+		if( path instanceof THREE.Object3D ){
+			return path;
+		}else if( ! _.isString(path) ){
+			return;
+		}
+
+		var root = parent;
+		if( path.charAt(0) == '/'){
+			path = path.substring(1);
+			root = exports.getRoot(root);
+			// remove scene
+			path = path.substring(root.name.length);
+		}
+
+		return _.reduce(_.compact(path.split('/')), function(node, name){
+			if( ! node){
+				return;
+			}
+			return node.getChildByName(name); q
+		}, root);
+	}
+
+	exports.getRoot = function( node ){
+		var root = node;
+		while(node.parent){
+			root = node.parent;
+		}
+		return root;
+	}
+
+})
+
 //==========================================
 //index.js
 //加载当前目录下的所有组件
@@ -142,22 +615,12 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 
 	function getInstance( geo, material ){
 
-		if( ! material){
-			
-			material = new THREE.MeshLambertMaterial( {
-				wireframe : true,
-				color : 0xffffff*Math.random()
-			} );
-			// 用来判断是否是系统自带材质
-			material.__system__ = true;
-		}
-
 		// https://github.com/mrdoob/three.js/issues/363
 		// https://github.com/mrdoob/three.js/wiki/Updates
 
 		// https://github.com/mrdoob/three.js/issues/2073
 		// https://github.com/mrdoob/three.js/issues/363
-		if( material.map ){
+		if( material && material.map ){
 			geo.uvsNeedUpdate = true;
 		}
 		if( ! geo.__referencecount__ ){
@@ -165,6 +628,10 @@ define("Core/Assets/Geometry-debug", [], function(require, exports, module){
 		}
 
 		var mesh = new THREE.Mesh(geo, material);
+		if( ! material){
+			mesh.material = null;	//set material to empty
+		}
+
 		mesh.name = geo.name+'_'+geo.__referencecount__;
 		geo.__referencecount__++;
 
@@ -460,7 +927,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 			'refractionRatio' : 'refractionRatio'
 		},
 		'lambert' : {
-			'color' : 'color',
+			'diffuse' : 'color',
 			'ambient' : 'ambient',
 			'emissive' : 'emissive',
 			'map' : 'map',
@@ -471,7 +938,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 			'refractionRatio' : 'refractionRatio'
 		},
 		'basic' : {
-			'color' : 'color',
+			'diffuse' : 'color',
 			'map' : 'map',
 			'lightMap' : 'lightMap',
 			'specularMap' : 'specularMap',
@@ -492,11 +959,6 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 				})
 
 				newMat = new THREE.ShaderMaterial;
-				newMat.map = mat.map ? true : false;
-				newMat.lightMap = mat.lightMap ? true : false;
-				newMat.specularMap = mat.specularMap ? true : false;
-				newMat.bumpMap = mat.bumpMap ? true : false;
-				newMat.normalMap = mat.normalMap ? true : false;
 
 				bindShader(newMat, shader);
 			}
@@ -506,9 +968,6 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 					shader.uniforms[uName].value = mat[pName]
 				})
 				newMat = new THREE.ShaderMaterial;
-				newMat.map = mat.map ? true : false;
-				newMat.lightMap = mat.lightMap ? true : false;
-				newMat.specularMap = mat.specularMap ? true : false;
 				
 				bindShader(newMat, shader);
 			}
@@ -518,9 +977,6 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 					shader.uniforms[uName].value = mat[pName]
 				})
 				newMat = new THREE.ShaderMaterial;
-				newMat.map = mat.map ? true : false;
-				newMat.lightMap = mat.lightMap ? true : false;
-				newMat.specularMap = mat.specularMap ? true : false;
 				
 				bindShader(newMat, shader);
 			}
@@ -547,9 +1003,13 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 	function read(m){
 
 		var material = new THREE.ShaderMaterial;
-		var shader = FS.root.find(m.shader);
+		var shader = ShaderAsset.create();
+		shader.import(material.shader);
+
 		if(shader){
 			bindShader( material, shader);
+		}else{
+			console.warn('shader '+m.shader+' not found');
 		}
 
 		return material;
@@ -565,6 +1025,22 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 		material.uniforms = shader.uniforms;
 		material.fragmentShader = shader.fragmentShader;
 		material.vertexShader = shader.vertexShader;
+		// enable the build-in materials map 
+		_.each(shader.uniforms, function(u, name){
+			if(u.type == 't'){
+				if(name == 'map' ||
+					name == 'lightMap' ||
+					name == 'specularMap' ||
+					name == 'envMap' ||
+					name == 'normalMap' ||
+					name == 'bumpMap'){
+
+					if(u.value){
+						material[name] = true;
+					}
+				}
+			}
+		})
 		material.needsUpdate = true;
 	}
 
@@ -572,7 +1048,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 
 		var json = {
 			name : material.name,
-			shader : this.shader.host.getPath()
+			shader : this.shader.export(),
 		}
 		
 		return json;
@@ -580,9 +1056,17 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 
 	function getCopy( mat ){
 
-		return mat.clone();
+		var clonedMat = new THREE.ShaderMaterial();
+		clonedMat.lights = true;
+		clonedMat.name = mat.name;
+
+		var shader = ShaderAsset.getCopy( mat.shader );
+		bindShader(clonedMat, shader);
+		
+		return clonedMat;
 	}
 
+	// some ugly codes
 	var previewLight = new THREE.DirectionalLight( 0xffffff );
 	previewLight.position = new THREE.Vector3(2,2,2);
 	var previewCamera = new THREE.PerspectiveCamera( 60, 1, 0.01, 10 );
@@ -594,6 +1078,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 	var previewSphereGeo = new THREE.SphereGeometry( 0.73, 10, 10 );
 
 	function getThumb( mat, size){
+		// get a clean copy of material
 		var mesh = new THREE.Mesh(previewSphereGeo, getCopy(mat) );
 		previewScene.add(mesh);
 		previewRenderer.render(previewScene, previewCamera);
@@ -645,9 +1130,12 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 
 						bindShader( material, ShaderAsset.buildin[value].getInstance() );
 					}else{
-						
+						var shader = FS.root.find(value);
+						if( ! shader){
+							console.warn( 'shader '+value+' not exist');
+						}
 						//query the shader;
-						bindShader( material, FS.root.find(value) );
+						bindShader( material,  shader);
 					}
 
 					// update Shader Asset Part
@@ -731,7 +1219,9 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 							if(name == 'map' ||
 								name == 'lightMap' ||
 								name == 'specularMap' ||
-								name == 'envMap'){
+								name == 'envMap' ||
+								name == 'normalMap' ||
+								name == 'bumpMap'){
 
 								material[name] = true;
 								material.needsUpdate = true;
@@ -764,6 +1254,7 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 		})
 		
 		return {
+
 			'Material Asset' : {
 				type : 'layer',
 				sub : props
@@ -793,7 +1284,9 @@ define("Core/Assets/Material-debug", ["./Shader-debug", "./FileSystem-debug"], f
 // Shader Asset is part of Material Asset
 // the uniforms in Shader Assets has no specific value,
 // it defines the config of the each uniform, like min value, max value and so on
-// only when it is attached to the material, the values will be used;
+// only after attached to the material, the values will be used;
+//
+// so DONT DIRECTLY USE THE SHADER DATA, ITS ONLY A TEMPLATE!!
 //========================
 define("Core/Assets/Shader-debug", [], function(require, exports, module){
 
@@ -2224,232 +2717,6 @@ define("Core/Assets/TextureCube-debug", [], function(require, exports, module){
 	exports.export = toJSON;
 
 	exports.getCopy = getCopy;
-})
-
-//=============
-// Util.js
-// Assets Util
-//=============
-define("Core/Assets/Util-debug", [], function(require, exports, module){
-	
-	//
-	//分割有多个material的geometry，使得每个mesh都只有一个单独的material
-	//为了清晰，不适用three.js的face material
-	//todo morphTarget, morphColor, morphNormals, skinWeights?
-	//
-	exports.splitGeometry = function(geo){
-
-		var faces = geo.faces,
-			uvs = geo.faceVertexUvs[0],	//只支持一个uv？
-			vertices = geo.vertices,
-
-			face, materialIndex,
-			v1, v2, v3, v4,
-
-			hashMap = [], item;
-
-		for(var i = 0; i < faces.length; i++){
-			
-			face = faces[i];
-
-			materialIndex = face.materialIndex;
-			if( _.isUndefined( materialIndex ) ){
-				materialIndex = 0;
-			}
-
-			if( ! hashMap[materialIndex] ){
-				hashMap[materialIndex] = {
-					'faces' : [],
-					'vertices' : [],
-					'uvs' : []
-				}
-			}
-			item = hashMap[materialIndex];
-			item.faces.push(face);
-			if( uvs[i] ){
-				item.uvs.push(uvs[i]);
-			} 
-
-			v1 = vertices[ face.a ];
-			v2 = vertices[ face.b ];
-			v3 = vertices[ face.c ];
-			
-			v1 = processVertex(v1, item, materialIndex);
-			face.a = v1.__newindex__;
-			v2 = processVertex(v2, item, materialIndex);
-			face.b = v2.__newindex__;
-			v3 = processVertex(v3, item, materialIndex);
-			face.c = v3.__newindex__;
-
-			if( face instanceof THREE.Face4){
-				v4 = vertices[ face.d ];
-				v4 = processVertex(v4, item, materialIndex);
-				face.d = v4.__newindex__;
-			}
-				
-		}
-
-		function processVertex(v, item, materialIndex){
-			if( typeof(v.__newindex__) !== 'undefined' ){
-				item.vertices.push(v);
-				// save the index of the new vertex array
-				v.__newindex__ = item.vertices.length - 1;
-			}
-			if( typeof(v.__materialindex__) !== 'undefined' ){
-				v.__materialindex__ = materialIndex;
-			}
-			else if( v.__materialindex__ != materialIndex){
-				v = v.clone();
-				item.vertices.push(v);
-				v.__newindex__ = item.vertices.length - 1;
-				v.__materialindex__ = materialIndex;
-			}
-			return v;
-		}
-
-		var subGeo, subGeoList = [];
-
-		for(var i = 0; i < hashMap.length; i++){
-			subGeo = new THREE.Geometry();
-			subGeo.vertices = hashMap[i].vertices;
-			subGeo.faces = hashMap[i].faces;
-			subGeo.faceVertexUvs = [ hashMap[i].uvs ];
-
-			subGeo.name = geo.name+'_sub_'+i;
-
-			subGeoList.push(subGeo);
-		}
-		// clear
-		for( var i = 0; i < hashMap.length; i++){
-			for(var v=0; v < hashMap[i].vertices.length; v++){
-				delete hashMap[i].vertices[v].__newindex__;
-				delete hashMap[i].vertices[v].__materialindex__;
-			}
-		}
-		// index 0 is the faces has no materialindex
-		return subGeoList;
-	}
-
-	//
-	// 计算整个节点的boundingbox
-	//
-	exports.computeBoundingBox = function(_node){
-
-		function computeBoundingBox(node){
-
-			var bbs = [];
-			if( node.geometry ){
-
-				if( ! node.geometry.boundingBox){
-
-					node.geometry.computeBoundingBox();
-				}
-				bbs.push(node.geometry.boundingBox);
-			}
-
-			_.each(node.children, function(item, key){
-
-				var bb = computeBoundingBox(item);
-				bbs.push(bb);
-			})
-			var min = new THREE.Vector3(100000, 100000, 100000);
-			var max = new THREE.Vector3(-100000, -100000, -100000);
-			
-			_.each(bbs, function(item, key){
-
-				if(item.max.x > max.x){
-					max.x = item.max.x;
-				}
-				if(item.max.y > max.y){
-					max.y = item.max.y;
-				}
-				if(item.max.z > max.z){
-					max.z = item.max.z;
-				}
-				if(item.min.x < min.x){
-					min.x = item.min.x;
-				}
-				if(item.min.y < min.y){
-					min.y = item.min.y;
-				}
-				if(item.min.z < min.z){
-					min.z = item.min.z;
-				}
-			})
-
-			return {min : min, max : max};
-		}
-
-		return computeBoundingBox(_node);
-	}
-
-	exports.deepCloneNode = function(root){
-		var rootCopy = root.clone();
-
-		_.each(root.children, function(node){
-			rootCopy.add( exports.deepCloneNode(node) );	
-
-		})
-
-		return rootCopy;
-
-	}
-
-	exports.parseFileName = function(fileName){
-		var fileSplited = fileName.split('.'),
-			ext = fileSplited.pop(),
-			base = fileSplited.join('.');
-
-		return {
-			ext : ext,
-			base : base
-		}
-	}
-
-	// some bridge function from treeview to scene
-
-	// get path of scene node compatible to three view
-	exports.getSceneNodePath = function( node ){
-		var path = node.name;
-		while(node.parent){
-			node = node.parent;
-			path = node.name + '/' + path;
-		}
-		return path;
-	}
-
-	exports.findSceneNode = function( path, parent ){
-
-		if( path instanceof THREE.Object3D ){
-			return path;
-		}else if( ! _.isString(path) ){
-			return;
-		}
-
-		var root = parent;
-		if( path.charAt(0) == '/'){
-			path = path.substring(1);
-			root = exports.getRoot(root);
-			// remove scene
-			path = path.substring(root.name.length);
-		}
-
-		return _.reduce(_.compact(path.split('/')), function(node, name){
-			if( ! node){
-				return;
-			}
-			return node.getChildByName(name); q
-		}, root);
-	}
-
-	exports.getRoot = function( node ){
-		var root = node;
-		while(node.parent){
-			root = node.parent;
-		}
-		return root;
-	}
-
 })
 
 //==========================================
@@ -4492,7 +4759,6 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 		var html = _.template('<li class="lblend-tree-folder">\
 						<span class="lblend-tree-title" draggable="true">\
-							<span class="icon-small icon-unfold button-toggle-collapse"></span>\
 							<span class="lblend-tree-icon"></span>\
 							<a>{{name}}</a>\
 						</span>\
@@ -4561,14 +4827,6 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 
 	Folder.prototype.toggleCollapase = function(){
 		this.$el.toggleClass('collapse');
-		var $btn = this.$el.find('.button-toggle-collapse');
-		if(this.$el.hasClass('collapse')){
-			$btn.removeClass('icon-unfold');
-			$btn.addClass('icon-fold');
-		}else{
-			$btn.removeClass('icon-fold');
-			$btn.addClass('icon-unfold');
-		}
 	}
 
 	Folder.prototype.traverse = function(callback){
@@ -4659,7 +4917,7 @@ define("Core/UIBase/Tree-debug", [], function(require, exports, module){
 		}
 
 		_.each(this.children, function(child){
-			this.children.push( child.toJSON() );
+			item.children.push( child.toJSON() );
 		})
 		return item;
 	}
@@ -5682,14 +5940,220 @@ define("Core/UIBase/Mixin/OutputPin-debug", ["./Pin-debug"], function(require, e
 	_.defaults(exports, Pin);
 })
 
+define("Core/Helpers/index-debug", ["./Boundingbox-debug", "./Camera-debug", "./Light-debug", "./Manipulator-debug", "../MouseEventDispatcher-debug", "../Assets/Util-debug", "./Scene-debug", "./Wireframe-debug"], function(require, exports){
+
+	exports.Boundingbox	= require('./Boundingbox-debug');
+	exports.Camera		= require('./Camera-debug');
+	exports.Lights		= require('./Light-debug');
+	exports.Manipulator	= require('./Manipulator-debug');
+	exports.Scene		= require('./Scene-debug');
+	exports.Wireframe	= require('./Wireframe-debug');
+
+})
+
+define("Core/Helpers/Boundingbox-debug", [], function(require, exports, module){
+
+})
+
+define("Core/Helpers/Camera-debug", [], function(require, exports, module){
+
+})
+
+define("Core/Helpers/Light-debug", [], function(require, exports, module){
+
+})
+
+//=================
+// Manipulator.js
+//=================
+define("Core/Helpers/Manipulator-debug", ["../MouseEventDispatcher-debug", "../Assets/Util-debug"], function(require, exports, module){
+
+	var scene;
+	var MouseEventDispatcher = require('../MouseEventDispatcher-debug');
+
+	var mode,
+		helperContainer,
+		helpers = {
+			move : null,
+			// rotate : null,
+			// scale : null
+		},
+
+		renderer,
+		camera,
+
+		mouseEventDispatcher;
+
+	var instance;
+
+	function getInstance(renderer, camera){
+
+		// change renderer and camera
+		renderer = renderer;
+		camera = camera;
+
+		if( instance ){
+
+			return instance;
+		}
+
+		scene = new THREE.Scene();
+
+		helperContainer = new THREE.Object3D(),
+		helpers['move'] = new PositionHelper(),
+		// helpers['rotate'] = new RotationHelper(),
+		// helpers['scale'] = new ScaleHelper();
+
+		helperContainer.add(helpers['move']);
+		// helperContainer.add(helpers['rotate']);
+		// helperContainer.add(helpers['scale']);
+
+		scene.add(helperContainer)
+		var dLight = new THREE.DirectionalLight(0xffffff);
+		dLight.position.set(1, 1, 0);
+		scene.add(dLight);
+
+		mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, false);
+		mouseEventDispatcher.updateScene();
+		handleInteraction();
+
+		var	target = null;
+
+		function updatePosition(){
+
+			helperContainer.position.set(0, 0, 0);
+			target.localToWorld( helperContainer.position );
+
+		}
+
+		instance = {
+
+			useMode : function(_mode){
+				mode = _mode.toLowerCase();
+				_.each(helpers, function(helper){
+					helper.visible = false;
+				})
+				helpers[mode].visible = true;
+			},
+
+			bind : function(object){
+
+				target = object;
+
+				object.off('updated:position', updatePosition);
+				object.on('updated:position', updatePosition, object);
+			},
+
+			render : function(renderer, camera){
+
+				renderer.render( scene, camera );
+
+			},
+
+			setRenderer : function(_renderer){
+				renderer = _renderer;
+			},
+
+			setCamera : function(_camera){
+				camera = _camera;
+			}
+		}
+
+		instance.useMode( 'move' );
+
+		return instance;
+	}
+
+	function handleInteraction(){
+
+		var axisX = helpers['move'].getChildByName('axis-x');
+		axisX.on('mousedown', function(e){
+			
+		})
+
+	}
+
+	// for move manipulation
+	var PositionHelper = function () {
+
+		THREE.Object3D.call( this );
+
+		var lineGeometry = new THREE.Geometry();
+		lineGeometry.vertices.push( new THREE.Vector3() );
+		lineGeometry.vertices.push( new THREE.Vector3( 0, 10, 0 ) );
+
+		var coneGeometry = new THREE.CylinderGeometry( 0, 0.5, 2.0, 5, 1 );
+
+		var xAxis = new THREE.Object3D();
+		xAxis.name = 'axis-x';
+		xAxis.rotation.z = -Math.PI/2;
+		var line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0xff0000 } ) );
+		var cone = new THREE.Mesh( coneGeometry, new THREE.MeshPhongMaterial( { color : 0xff0000 } ) );
+		cone.enablepicking = true;
+		cone.position.y = 10;
+		xAxis.add( line );
+		xAxis.add( cone );
+
+		var yAxis = new THREE.Object3D();
+		yAxis.name = 'axis-y';
+		var line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0x00ff00 } ) );
+		var cone = new THREE.Mesh( coneGeometry, new THREE.MeshPhongMaterial( { color : 0x00ff00 } ) );
+		cone.enablepicking = true;		
+		cone.position.y = 10;
+		yAxis.add( line );
+		yAxis.add( cone );
+
+		var zAxis = new THREE.Object3D();
+		zAxis.name = 'axis-z';
+		zAxis.rotation.x = -Math.PI/2;
+		var line = new THREE.Line( lineGeometry, new THREE.LineBasicMaterial( { color : 0x0000ff } ) );
+		var cone = new THREE.Mesh( coneGeometry, new THREE.MeshPhongMaterial( { color : 0x0000ff } ) );
+		cone.enablepicking = true;
+		cone.position.y = 10;
+		zAxis.add( line );
+		zAxis.add( cone );
+
+		this.add(xAxis);
+		this.add(yAxis);
+		this.add(zAxis);
+
+	};
+	PositionHelper.prototype = Object.create( THREE.Object3D.prototype );
+
+	// for rotate manipulation
+	var RotationHelper = function(){
+
+	}
+	RotationHelper.prototype = Object.create( THREE.Object3D.prototype );
+
+	// for scale manipulation
+	var ScaleHelper = function(){
+
+	}
+	ScaleHelper.prototype = Object.create( THREE.Object3D.prototype );
+
+	exports.getInstance = getInstance;
+})
+
+
+define("Core/Helpers/Scene-debug", [], function(require, exports, module){
+
+})
+
+define("Core/Helpers/Wireframe-debug", [], function(require, exports, module){
+
+})
+
 //==========================================
 //index.js
 //加载当前目录下的所有组件
 //==========================================
-define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Shader-debug", "./Assets/FileSystem-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Util-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./Assets/Importer/Image-debug", "./Assets/Importer/DDS-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Image-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug"], function(require, exports, module){
+define("Core/index-debug", ["./Hub-debug", "./svg-debug", "./MouseEventDispatcher-debug", "./Assets/Util-debug", "./Assets/index-debug", "./Assets/Geometry-debug", "./Assets/Material-debug", "./Assets/Shader-debug", "./Assets/FileSystem-debug", "./Assets/Prefab-debug", "./Assets/Texture-debug", "./Assets/TextureCube-debug", "./Assets/Importer/index-debug", "./Assets/Importer/Binary-debug", "./Assets/Importer/Collada-debug", "./Assets/Importer/JSON-debug", "./Assets/Importer/Zip-debug", "./Assets/Importer/Image-debug", "./Assets/Importer/DDS-debug", "./UIBase/index-debug", "./UIBase/Button-debug", "./UIBase/Checkbox-debug", "./UIBase/Float-debug", "./UIBase/Image-debug", "./UIBase/Input-debug", "./UIBase/Label-debug", "./UIBase/Color-debug", "./UIBase/Layer-debug", "./UIBase/Link-debug", "./UIBase/Node-debug", "./UIBase/Panel-debug", "./UIBase/Select-debug", "./UIBase/Texture-debug", "./UIBase/Tree-debug", "./UIBase/Vector-debug", "./UIBase/Video-debug", "./UIBase/Tab-debug", "./UIBase/Mixin/index-debug", "./UIBase/Mixin/Collapsable-debug", "./UIBase/Mixin/Scrollable-debug", "./UIBase/Mixin/InputPin-debug", "./UIBase/Mixin/Pin-debug", "./UIBase/Mixin/OutputPin-debug", "./Helpers/index-debug", "./Helpers/Boundingbox-debug", "./Helpers/Camera-debug", "./Helpers/Light-debug", "./Helpers/Manipulator-debug", "./Helpers/Scene-debug", "./Helpers/Wireframe-debug"], function(require, exports, module){
 
 	exports.Hub 	= require('./Hub-debug');
 	exports.svg 	= require('./svg-debug');
+	exports.MouseEventDispatcher = require('./MouseEventDispatcher-debug');
 	exports.Assets 	= require('./Assets/index-debug');
 	exports.UIBase 	= require('./UIBase/index-debug');
+	exports.Helpers = require('./Helpers/index-debug');
 })

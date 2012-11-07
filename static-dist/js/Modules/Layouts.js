@@ -7,7 +7,7 @@ define(function(require, exports, module){
 		{
 			template : '<div class="workspace-scene ui-layout-container">\
 							<div class="ui-layout-center">\
-								<div class="region" tabindex="1" data-modules="Scene Compositor"></div>\
+								<div class="region" tabindex="1" data-modules="Scene"></div>\
 							</div>\
 							<div class="ui-layout-east">\
 								<div class="region" tabindex="2" data-modules="Inspector"></div>\

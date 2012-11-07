@@ -35,6 +35,9 @@
 		    }
 		  }
 		});
+
+		//extends event to tree.js object
+		_.extend(THREE.Object3D.prototype, Backbone.Events);
 		// dependencies
 		seajs.use([
 					'./js/Core/index.js'

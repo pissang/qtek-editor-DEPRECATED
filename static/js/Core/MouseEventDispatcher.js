@@ -5,8 +5,7 @@
 
 define(function(require, exports){
 
-	var AssetUtil = require('../Core/Assets/Util');
-		hub = require('../Core/Hub').getInstance();
+	var AssetUtil = require('./Assets/Util');
 
 	function create( scene, camera, renderer, gpupicking){
 

@@ -17,15 +17,17 @@ define(function(require, exports, module){
 		renderer,
 		camera,
 
-		mouseEventDispatcher;
+		mouseEventDispatcher,
+
+		projector = new THREE.Projector();
 
 	var instance;
 
-	function getInstance(renderer, camera){
+	function getInstance(_renderer, _camera){
 
 		// change renderer and camera
-		renderer = renderer;
-		camera = camera;
+		renderer = _renderer;
+		camera = _camera;
 
 		if( instance ){
 
@@ -99,13 +101,64 @@ define(function(require, exports, module){
 		return instance;
 	}
 
-	function handleInteraction(){
+	function handleMoveInteraction(){
 
-		var axisX = helpers['move'].getChildByName('axis-x');
+		var axisX = helpers['move'].getChildByName('axis-x'),
+			axisY = helpers['move'].getChildByName('axis-y'),
+			axisZ = helpers['move'].getChildByName('axis-z');
+
 		axisX.on('mousedown', function(e){
-			
+			var ray = unprojectedRay(e.x, e.y),
+				point = getIntersectPoint(ray, 'xy');
 		})
+		axisY.on('mousedown', function(e){
+			var ray = unprojectedRay(e.x, e.y),
+				point = getIntersectPoint(ray, 'yz');
+		})
+		axisZ.on('mousedown', function(e){
+			var ray = unprojectedRay(e.x, e.y),
+				point = getIntersectPoint(ray, 'xz');
+		})
+		
+	}
 
+	function unprojectedRay(x, y){
+
+		x = (x/renderer.domElement.width)*2-1;
+		y = -(y/renderer.domElement.height)*2+1;
+		var ray = projector.pickingRay( new THREE.Vector3(x, y, 0.5), camera );
+	
+		return ray;
+	}
+
+	function getIntersectPoint(ray, plane){
+		plane = eulerPlanes[plane];
+
+		var odn = ray.origin.dot( plane.normal );
+		if( odn < 0){
+			// enable double side intersection
+			distance = -ray.origin.dot( plane.otherSide) / ray.direction.dot( plane.otherSide );
+		}else{
+			distance = -odn / ray.direction.dot( plane.normal );
+		}
+		var point = new THREE.Vector3().copy(ray.direction).normalize().multiplyScalar( distance );
+		point.addSelf(ray.origin);
+		return point;
+	}
+
+	var eulerPlanes = {
+		'yz' : {
+			normal : new THREE.Vector3(1, 0, 0),
+			otherSide : new THREE.Vector3(-1, 0, 0)
+		},
+		'xz' : {
+			normal : new THREE.Vector3(0, 1, 0),
+			otherSide : new THREE.Vector3(0, -1, 0)
+		},
+		'xy' : {
+			normal : new THREE.Vector3(0, 0, 1),
+			otherSide : new THREE.Vector3(0, 0, -1)
+		}
 	}
 
 	// for move manipulation
