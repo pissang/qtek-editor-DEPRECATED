@@ -73,22 +73,12 @@ define(function(require, exports, module){
 
 	function getInstance( geo, material ){
 
-		if( ! material){
-			
-			material = new THREE.MeshLambertMaterial( {
-				wireframe : true,
-				color : 0xffffff*Math.random()
-			} );
-			// 用来判断是否是系统自带材质
-			material.__system__ = true;
-		}
-
 		// https://github.com/mrdoob/three.js/issues/363
 		// https://github.com/mrdoob/three.js/wiki/Updates
 
 		// https://github.com/mrdoob/three.js/issues/2073
 		// https://github.com/mrdoob/three.js/issues/363
-		if( material.map ){
+		if( material && material.map ){
 			geo.uvsNeedUpdate = true;
 		}
 		if( ! geo.__referencecount__ ){
@@ -96,6 +86,10 @@ define(function(require, exports, module){
 		}
 
 		var mesh = new THREE.Mesh(geo, material);
+		if( ! material){
+			mesh.material = null;	//set material to empty
+		}
+
 		mesh.name = geo.name+'_'+geo.__referencecount__;
 		geo.__referencecount__++;
 

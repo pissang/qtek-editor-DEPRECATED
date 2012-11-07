@@ -58,10 +58,15 @@
 		    }
 		  }
 		});
+
+		//extends event to tree.js object
+		_.extend(THREE.Object3D.prototype, Backbone.Events);
+
 		// dependencies
 		seajs.use([
 					'./js/Core/Hub',
 					'./js/Core/svg',
+					'./js/Core/MouseEventDispatcher',
 					//////// ui modules
 					'./js/Core/UIBase/Button',
 					'./js/Core/UIBase/Checkbox',

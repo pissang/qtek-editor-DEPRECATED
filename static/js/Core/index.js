@@ -6,6 +6,7 @@ define(function(require, exports, module){
 
 	exports.Hub 	= require('./Hub');
 	exports.svg 	= require('./svg');
+	exports.MouseEventDispatcher = require('./MouseEventDispatcher');
 	exports.Assets 	= require('./Assets/index');
 	exports.UIBase 	= require('./UIBase/index');
 })
