@@ -1,6 +1,8 @@
 //================
 // Scene.js
 // 场景编辑器
+//
+// todo : load scene
 //================
 
 define(function(require, exports){
@@ -59,6 +61,7 @@ define(function(require, exports){
 			camera.__helper__ = true;
 
 			defaultMaterial = new THREE.MeshLambertMaterial();
+			defaultMaterial.__default__ = true;
 			defaultLight = new THREE.DirectionalLight(0xffffff);
 			defaultLight.position.set(1, 1, 0);
 			
@@ -67,7 +70,7 @@ define(function(require, exports){
 			scene.name = 'scene';
 
 			//mouse event dispatcher
-			mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, true );
+			mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, false );
 
 			//manipulator helper
 			manipulatorHelper = Helpers.Manipulator.getInstance( renderer, camera );
@@ -149,23 +152,10 @@ define(function(require, exports){
 		if(scene.__lights.length == 0){
 			scene.add(defaultLight);
 		}
-		scene.traverse(function(object){
-			if( object instanceof THREE.Mesh && ! object.material){
-				object.material = defaultMaterial;
-			}
-		})
-
 	}
 
 	function resetScene(){
 		scene.remove(defaultLight);
-
-		//remove default material
-		scene.traverse(function(object){
-			if(object.material && object.material  == defaultMaterial){
-				object.material = null;
-			}
-		})
 	}
 
 	function render(){
@@ -177,15 +167,14 @@ define(function(require, exports){
 		renderer.render(scene, camera);
 		resetScene();
 
-		// 清除深度缓存，color buffer就会直接覆盖上去
 		renderer.clear(false, true, false);
-		manipulatorHelper.render( renderer, camera);
+		manipulatorHelper.render();
 	}
 
 	// 
 	// 处理所有从hub分配的事件
-	// 如果是主动触发事件则统一为动名词，例如select:object create:mesh
-	// 如果是事件完成后的回调事件则用过去式，如selected:object created:mesh
+	// 如果是主动触发事件则统一为动名词，例如select:node create:mesh
+	// 如果是事件完成后的回调事件则用过去式，如selected:node created:mesh
 	// 
 	// 触发顺序
 	// 	create:mesh(light,camera)->   创建mesh(light,camera)
@@ -205,7 +194,9 @@ define(function(require, exports){
 			node.traverse( function(_node){
 				if(_node instanceof THREE.Mesh){
 					_node.enablepicking = true;
-
+					if( ! _node.material ){
+						_node.material = defaultMaterial;
+					}
 					mouseEventDispatcher.updateScene();
 				}
 				else if(_node instanceof THREE.Light){
@@ -225,37 +216,46 @@ define(function(require, exports){
 
 				}
 
-				_node.on('updated:position', function(position){
+				_node.on('update:position', function(position,silent){
 					if( position.x){
-						hub.trigger('update:node', 'position.x', position.x, true);
+						hub.trigger('update:node', this, 'position.x', position.x, true);
 					}
 					if( position.y){
-						hub.trigger('update:node', 'position.y', position.y, true);
+						hub.trigger('update:node', this, 'position.y', position.y, true);
 					}
 					if( position.z){
-						hub.trigger('update:node', 'position.z', position.z, true);
+						hub.trigger('update:node', this, 'position.z', position.z, true);
+					}
+					if( ! silent){
+						this.trigger('updated:position', position);
 					}
 				}, _node)
-				_node.on('updated:rotation', function(rotation){
+				_node.on('update:rotation', function(rotation,silent){
 					if( rotation.x){
-						hub.trigger('update:node', 'rotation.x', rotation.x, true);
+						hub.trigger('update:node', this, 'rotation.x', rotation.x, true);
 					}
 					if( rotation.y){
-						hub.trigger('update:node', 'rotation.y', rotation.y, true);
+						hub.trigger('update:node', this, 'rotation.y', rotation.y, true);
 					}
 					if( rotation.z){
-						hub.trigger('update:node', 'rotation.z', rotation.z, true);
+						hub.trigger('update:node', this, 'rotation.z', rotation.z, true);
+					}
+					if( ! silent){
+						this.trigger('updated:rotation', rotation);
 					}
 				}, _node)
-				_node.on('updated:scale', function(scale){
+				_node.on('update:scale', function(scale,silent){
 					if( scale.x){
-						hub.trigger('update:node', 'scale.x', scale.x, true);
+						hub.trigger('update:node', this, 'scale.x', scale.x, true);
 					}
 					if( scale.y){
-						hub.trigger('update:node', 'scale.y', scale.y, true);
+						hub.trigger('update:node', this, 'scale.y', scale.y, true);
 					}
 					if( scale.z){
-						hub.trigger('update:node', 'scale.z', scale.z, true);
+						hub.trigger('update:node', this, 'scale.z', scale.z, true);
+					}
+					if( ! silent){
+						this.trigger('updated:scale', scale);
 					}
 				}, _node)
 			})
@@ -322,7 +322,10 @@ define(function(require, exports){
 				return;
 			}
 			selectedNode = node;
-			
+
+			manipulatorHelper.bind(node);
+			hub.trigger('inspect:object', node.getConfig());
+
 			if( ! silent){
 				hub.trigger('selected:node', node);
 			}
@@ -588,7 +591,7 @@ define(function(require, exports){
 
 			'cube' : (function(){
 				var geo = new THREE.CubeGeometry( 10, 10, 10, 1, 1, 1);
-				geo.name = 'Cube';
+				geo.name = 'cube';
 				return function(){
 					var mesh = Assets.Geometry.getInstance( geo );
 					return mesh;
@@ -597,7 +600,7 @@ define(function(require, exports){
 
 			'sphere' : (function(){
 				var geo = new THREE.SphereGeometry( 5 ,20, 20);
-				geo.name = 'Sphere';
+				geo.name = 'sphere';
 				return function(){
 					var mesh = Assets.Geometry.getInstance( geo );
 					return mesh;
@@ -606,7 +609,7 @@ define(function(require, exports){
 
 			'plane' : (function(){
 				var geo = new THREE.PlaneGeometry( 10, 10 );
-				geo.name = 'Plane';
+				geo.name = 'plane';
 				return function(){
 					var mesh = Assets.Geometry.getInstance( geo );
 					return mesh;
@@ -615,7 +618,7 @@ define(function(require, exports){
 
 			'cylinder' : (function(){
 				var geo = new THREE.CylinderGeometry( 5, 5, 5, 20 );
-				geo.name = 'Cylinder';
+				geo.name = 'cylinder';
 				return function(){
 					var mesh = Assets.Geometry.getInstance( geo );
 					return mesh;
@@ -624,10 +627,10 @@ define(function(require, exports){
 		},
 
 		'empty' : (function(){
-			var slot = 0;
+			var id = 0;
 			return function(){
 				var node = new THREE.Object3D();
-				node.name = 'Node_'+(slot++);
+				node.name = 'node_'+(id++);
 				return node;
 			}
 		})(),
@@ -635,40 +638,40 @@ define(function(require, exports){
 		'light' : {
 
 			'ambient' : (function(){
-				var slot = 0;
+				var id = 0;
 				return function(){
 					var light = new THREE.AmbientLight( 0xffffff );
-					light.name = 'AmbientLight_'+(slot++);
+					light.name = 'ambientlight_'+(id++);
 
 					return light;
 				}
 			})(),
 
 			'directional' : (function(){
-				var slot = 0;
+				var id = 0;
 				return function(){
 					var light = new THREE.DirectionalLight(0xffffff);
-					light.name = 'DirectionalLight_'+(slot++);
+					light.name = 'directionallight_'+(id++);
 					
 					return light;
 				}
 			})(),
 
 			'point' : (function(){
-				var slot = 0;
+				var id = 0;
 				return function(){
 					var light = new THREE.PointLight( 0xffffff );
-					light.name = 'PointLight_' + (slot++);
+					light.name = 'pointlight_' + (id++);
 
 					return light;
 				}
 			})(),
 
 			'spot' : (function(){
-				var slot = 0;
+				var id = 0;
 				return function(){
 					var light = new THREE.SpotLight( 0xffffff );
-					light.name = 'SpotLight_'+(slot++);
+					light.name = 'spotlight_'+(id++);
 
 					return light;
 				}
@@ -678,22 +681,22 @@ define(function(require, exports){
 		'camera' : {
 
 			'perspective' : (function(){
-				var slot = 0;
+				var id = 0;
 				return function(){
 					var camera = new THREE.PerspectiveCamera( 60, 1, 0.1, 40 );
 					camera.position.z = 20;
 					camera.lookAt( new THREE.Vector3( 0, 0, 0 ) );
-					camera.name = 'PerspectiveCamera_'+(slot++);
+					camera.name = 'perspectivecamera_'+(id++);
 
 					return camera;
 				}
 			})(),
 
 			'ortho' : (function(){
-				var slot = 0;
+				var id = 0;
 				return function(){
 					var camera = new THREE.OrthographicCamera( -50, 50, 50, -50, -50, 50 );
-					camera.name = 'OrthoCamera_'+(slot++);
+					camera.name = 'orthocamera_'+(id++);
 
 					return camera;
 				}

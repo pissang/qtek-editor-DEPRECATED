@@ -6,7 +6,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			color : 0	//hex string
 		}
 	})
@@ -19,7 +18,7 @@ define(function(require, exports, module){
 
 		className : 'lblend-color',
 
-		template : '<label class="lblend-color-label" data-html="model.name"></label>\
+		template : '<label class="lblend-color-label">{{name}}</label>\
 						<div class="lblend-color-picker">\
 							<input type="text" data-value="model.color"/>\
 						</div>',
@@ -45,7 +44,10 @@ define(function(require, exports, module){
 		render : function(){
 			var self = this;
 
-			this.$el.html(_.template(this.template) );
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ) );
+
 			rivets.bind(this.$el, {model : this.model});
 
 			var $input = this.$el.find('.lblend-color-picker input');
@@ -57,7 +59,13 @@ define(function(require, exports, module){
 			});
 
 			this.$input = $input;
+		},
+
+		setName : function(name){
+			this.$el.children('label').html(name);
+			this.name = name;
 		}
+		
 	})
 
 	return {

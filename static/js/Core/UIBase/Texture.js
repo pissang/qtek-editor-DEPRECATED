@@ -1,6 +1,6 @@
 //=======================================
-//Texture.js
-//纹理编辑组件
+//	Texture.js
+//	纹理编辑组件
 //=======================================
 
 define(function(require, exports, module){
@@ -11,7 +11,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			path : 'none',	//文件位置
 			texture : null	//THREE.Texture
 		}
@@ -25,7 +24,8 @@ define(function(require, exports, module){
 
 		className : 'lblend-texture',
 
-		template : '<label class="lblend-texture-label" data-html="model.name"></label><span class="lblend-texture-path" data-html="model.path"></span>',
+		template : '<label class="lblend-texture-label">{{name}}</label>\
+					<span class="lblend-texture-path" data-html="model.path"></span>',
 
 		popupTemplate : '<div class="lblend-texture-popup"><div class="lblend-texture-popup-image"></div></div>',
 
@@ -60,7 +60,9 @@ define(function(require, exports, module){
 
 		render : function(){
 
-			this.$el.html( this.template );
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ) );
 
 			rivets.bind(this.$el, {model:this.model});
 
@@ -69,6 +71,11 @@ define(function(require, exports, module){
 
 			this.$popup.attr('id', 'texturepopup_'+this.textureID);
 			this.updateTexture();
+		},
+
+		setName : function(name){
+			this.$el.children('label').html(name);
+			this.name = name;
 		},
 
 		toggleImage : function(){

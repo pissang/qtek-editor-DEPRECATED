@@ -7,7 +7,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			filename : '',	//文件位置
 			src : null	//HTMLImageElement
 		}
@@ -21,7 +20,7 @@ define(function(require, exports, module){
 
 		className : 'lblend-image',
 
-		template : '<label class="lblend-image-label" data-html="model.name"></label>\
+		template : '<label class="lblend-image-label">{{name}}</label>\
 					<span class="lblend-image-filename" data-html="model.filename"></span>\
 					<div class="lblend-image-wrapper">\
 						<img data-src="model.src" />\
@@ -43,12 +42,18 @@ define(function(require, exports, module){
 
 		render : function(){
 
-			this.$el.html( this.template );
-
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ) );
+			
 			rivets.bind(this.$el, {model:this.model});
 			
-		}
+		},
 
+		setName : function(name){
+			this.$el.children('label').html(name);
+			this.name = name;
+		}
 
 	})
 

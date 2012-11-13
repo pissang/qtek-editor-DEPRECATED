@@ -9,5 +9,6 @@ define(function(require, exports, module){
 	exports.InputPin 	= require('./InputPin');
 	exports.OutputPin 	= require('./OutputPin');
 	exports.Pin 		= require('./Pin');
+	exports.Acceptable 	= require('./Acceptable');
 
 })

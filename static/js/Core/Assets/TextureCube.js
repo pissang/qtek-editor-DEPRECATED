@@ -8,6 +8,8 @@
 //========================
 define(function(require, exports, module){
 
+	var TextureAsset = require('./Texture');
+
 	var imageCache = {};
 
 	var guid = 0;
@@ -38,7 +40,7 @@ define(function(require, exports, module){
 				return this.data;
 			},
 
-			export : function(){
+			toJSON : function(){
 				return toJSON( this.data );
 			},
 			getInstance : function(){
@@ -46,6 +48,9 @@ define(function(require, exports, module){
 			},
 			getCopy : function(){
 				return getCopy( this.data );
+			},
+			getConfig : function(){
+				return getConfig( this.data );
 			},
 			getPath : function(){
 				if( this.host){
@@ -136,6 +141,62 @@ define(function(require, exports, module){
 		return json;
 	}
 
+	function getConfig(texture){
+		var config = TextureAsset.getConfig(texture);
+		config['Texture']['class'] = 'texturecube';
+		// replace the image item with px, nx, py, ny, pz, nz
+		delete config['Texture'].sub['image'];
+
+		_.extend(config['Texture'].sub, {
+			'px' : _genSubImageConfig(texture, 'px', 0),
+			'nx' : _genSubImageConfig(texture, 'nx', 1),
+			'py' : _genSubImageConfig(texture, 'py', 2),
+			'ny' : _genSubImageConfig(texture, 'ny', 3),
+			'pz' : _genSubImageConfig(texture, 'pz', 4),
+			'nz' : _genSubImageConfig(texture, 'nz', 5)
+		})
+
+		return config;
+	}
+
+	function _genSubImageConfig(texture, d, idx){
+
+		return {
+			type : 'image',
+			value : texture.image[idx],
+			onchange : function(value){
+				texture.image[idx] = value;
+				texture.needsUpdate = true;
+			},
+			acceptConfig : {
+				'image' : {
+					'accept' : function(files){
+						if(files instanceof FileList){
+							return true;
+						}
+					},
+					'accepted' : function(files){
+						_.each(files, function(file){
+							if(file.type.match(/image.*/) ||
+								file.name.match(/\.dds$/)){
+								var reader = new FileReader();
+								reader.onload = function(e){
+									var image = new Image();
+									image.onload = function(){
+										texture,needsUpdate = true;
+									}
+									image.src = e.target.result;
+									texture.image[idx] = image;
+								}
+								reader.readAsDataURL(file);
+							}
+						})
+					}
+				}
+			}
+		}
+	}
+
 	function getInstance( texture ){
 		texture.needsUpdate = true;
 		return texture;
@@ -147,7 +208,9 @@ define(function(require, exports, module){
 
 	exports.create = create;
 	// static functions
-	exports.export = toJSON;
+	exports.toJSON = toJSON;
 
 	exports.getCopy = getCopy;
+
+	exports.getConfig = getConfig;
 })

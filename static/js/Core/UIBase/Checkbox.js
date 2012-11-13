@@ -6,7 +6,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			value : false	//boolean
 		}
 	})
@@ -19,7 +18,8 @@ define(function(require, exports, module){
 
 		className : 'lblend-checkbox',
 
-		template : '<input type="checkbox" data-checked="model.value" data-name="model.name" /><label class="lblend-checkbox-label" data-html="model.name"></label>',
+		template : '<input type="checkbox" data-checked="model.value" data-name="model.name" />\
+					<label class="lblend-checkbox-label">{{name}}</label>',
 
 		model : null,
 
@@ -35,8 +35,15 @@ define(function(require, exports, module){
 
 		render : function(){
 			var self = this;
-			this.$el.html( this.template );
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ));
 			rivets.bind( this.$el, { model : this.model } );
+		},
+
+		setName : function(name){
+			this.$el.children('label').html(name);
+			this.name = name;
 		}
 		
 	})

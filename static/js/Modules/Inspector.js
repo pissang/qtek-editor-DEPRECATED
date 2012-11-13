@@ -11,7 +11,7 @@ define(function(require, exports, module){
 
 	var view;
 
-	var selectedNode;
+	var configs;
 
 	function getInstance(){
 		if(view){
@@ -35,12 +35,20 @@ define(function(require, exports, module){
 
 	function handleHubEvent(){
 
-		hub.on('inspect:object', function(configs){
+		hub.on('inspect:object', function(_configs){
 
 			view.removeAll();
+
+			configs = _configs;
+			
 			_.each(configs, function(item, name){
 				
-				view.appendView( createView(name, item) );
+				var itemView = createView(name, item);
+
+				if( itemView ){
+
+					view.appendView( itemView );
+				}
 			})
 		})
 	}
@@ -49,8 +57,10 @@ define(function(require, exports, module){
 		var itemView;
 		switch(item.type.toLowerCase()){
 			case 'layer':
-				itemView = new UIBase.Layer.View;
-				itemView.setName(name);
+				itemView = new UIBase.Layer.View({
+					name : name
+				});
+
 				if( item['class'] ){
 					itemView.$el.addClass('inspector-'+item['class']);
 				}
@@ -87,14 +97,20 @@ define(function(require, exports, module){
 				itemView = createTextureView(name, item.value, item.onchange);
 				break;
 		}
+		if(itemView && item.acceptConfig){
+			
+			UIBase.Mixin.Acceptable.applyTo(itemView);
+			_.extend(itemView.acceptConfig, item.acceptConfig);
+		}
 		return itemView;
 	}
 
 	function createInputView(name, value, onchange){
-		var view = new UIBase.Input.View;
+		var view = new UIBase.Input.View({
+			name : name
+		});
 
 		view.model.set({
-			name : name,
 			value : value
 		})
 
@@ -107,9 +123,10 @@ define(function(require, exports, module){
 
 	function createImageView(name, image, onchange ){
 
-		var view = new UIBase.Image.View;
+		var view = new UIBase.Image.View({
+			name : name
+		});
 		view.model.set({
-			name : name,
 			src : image.src
 		});
 		image.onload = function(){
@@ -125,7 +142,9 @@ define(function(require, exports, module){
 
 	function createTextureView(name, value, onchange ){
 
-		var view = new UIBase.Texture.View;
+		var view = new UIBase.Texture.View({
+			name : name
+		});
 
 		// value is '' when the texture is null
 		if( value ){	
@@ -135,7 +154,6 @@ define(function(require, exports, module){
 				return;
 			}
 			view.model.set({
-				name : name,
 				path : value,
 				texture : texAsset.data
 			})
@@ -150,14 +168,30 @@ define(function(require, exports, module){
 			onchange && onchange(_value);
 		})
 
+		// accept texture
+		view.$el[0].addEventListener('drop', function(e){
+			var json = e.dataTransfer.getData('text/plain');
+			if( json ){
+				json = JSON.parse(json);
+			}
+			// from three view
+			if( json.owner ){	
+				if( json.owner == 'project' && json.dataType == 'texture'){
+					
+					view.model.set('path', json.dataSource);
+				}
+			}
+		})
+
 		return view;
 	}
 
 	function createBooleanView(name, value, onchange ){
 
-		var view = new UIBase.Checkbox.View;
+		var view = new UIBase.Checkbox.View({
+			name : name
+		});
 		view.model.set({
-			'name' : name,
 			'value' : value
 		})
 		view.model.on('change:value', function(model, value){
@@ -168,11 +202,12 @@ define(function(require, exports, module){
 	}
 
 	function createSelectView(name, value, options, onchange){
-		var view = new UIBase.Select.View;
+		var view = new UIBase.Select.View({
+			name : name
+		});
 		view.setName(name);
 		_.each(options, function(item){
 			view.collection.add({
-				name : item['value'],
 				value : item['value'],
 				html : item['description']
 			});
@@ -188,9 +223,10 @@ define(function(require, exports, module){
 
 	function createFloatView(name, value, min, max, step, onchange){
 
-		var view = new UIBase.Float.View;
+		var view = new UIBase.Float.View({
+			name : name
+		});
 		view.model.set({
-			'name' : name,
 			'value': value,
 			'min' : min,
 			'max' : max,
@@ -230,7 +266,9 @@ define(function(require, exports, module){
 
 	function createColorView(name, value, onchange){
 		
-		var view = new UIBase.Color.View;
+		var view = new UIBase.Color.View({
+			name : name
+		});
 
 		// adapt to native color picker format
 		if( value[0] != '#'){
@@ -238,7 +276,6 @@ define(function(require, exports, module){
 		}
 
 		view.model.set({
-			name : name,
 			color : value
 		});
 		view.model.on('change:color', function(model, val){

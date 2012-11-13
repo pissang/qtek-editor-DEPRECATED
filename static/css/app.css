@@ -187,7 +187,7 @@ h1{
 #Project .icon-project-folder{
 	background-image: url(../img/folder.png);
 }
-#Project .icon-project-file{
+#Project .icon-project-prefab{
 	background-image: url(../img/icons/cog.png);
 }
 #Project .icon-unfold{
@@ -271,30 +271,20 @@ h1{
 }
 
 /* texture asset properties*/
-#Inspector .inspector-texture .lblend-image{
+.inspector-texture .lblend-image,
+.inspector-texturecube .lblend-image{
 	border: none;
 	height:220px;
 }
 .inspector-texture .lblend-image-label{
-	display: none;
 }
-.inspector-texture .lblend-image img{
+.inspector-texture .lblend-image img,
+.inspector-texturecube .lblend-image img{
 	height:200px;
 	margin-left: 20px;
 }
 /****transform的属性编辑****/
-.inspector-transform >.lblend-list{
-}
-.inspector-transform .lblend-vector{
-	display: inline-block;
-	width:120px;
-}
-.inspector-transform .lblend-vector .lblend-float:first-child{
-	border-radius : 5px 5px 0px 0px;
-}
-.inspector-transform .lblend-vector .lblend-float:last-child{
-	border-radius : 0px 0px 5px 5px;
-}
+
 /****light的属性编辑*****/
 .inspector-light >.lblend-list{
 }

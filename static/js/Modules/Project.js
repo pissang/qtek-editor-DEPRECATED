@@ -1,5 +1,7 @@
 //=================================
 // Project.js
+// manage all the assets need for the project
+// assets management is based on the FileSystem
 //=================================
 define(function(require, exports, module){
 
@@ -46,9 +48,6 @@ define(function(require, exports, module){
 		//提供给外部的接口
 		return {
 			view : view,
-
-			receiveDataTransfer : receiveDataTransfer,
-
 		}
 	}
 
@@ -61,9 +60,92 @@ define(function(require, exports, module){
 			hub.trigger('uploaded:file');
 		});
 
+		hub.on('create:asset', function(type){
+			switch(type){
+				case 'texture':
+					createTextureAsset();
+					break;
+				case 'texturecube':
+					createTextureCubeAsset();
+					break;
+				case 'material':
+					createMaterialAsset();
+					break
+			}
+		});
+
+		hub.on('create:folder', createFolder)
 	}
 
-	// 拖拽读取
+	// empty assets create functions
+	var createFolder = (function(){
+		var id = 0;
+		return function(){
+			
+			getParentFolder().createFolder('empty_'+(id++));
+		}
+	})();
+
+	var createTextureAsset = (function(){
+		var id = 0;
+		return function(){
+			var name = 'texture_'+(id++),
+				texture = new THREE.Texture( new Image );
+			texture.name = name;
+			var	asset = Assets.Texture.create(texture);
+			getParentFolder().createFile(name, asset);
+		}
+	})()
+
+	var createTextureCubeAsset = (function(){
+		var id = 0;
+		return function(){
+			var name = 'texturecube_'+(id++),
+				texture = new THREE.Texture( [
+					new Image,
+					new Image,
+					new Image,
+					new Image,
+					new Image,
+					new Image
+				]);
+			texture.name = name;
+			var asset = Assets.TextureCube.create(texture);
+			getParentFolder().createFile(name, asset);
+		}
+	})()
+
+	var createMaterialAsset = (function(){
+		var id = 0;
+		return function(){
+			var name = 'material_'+(id++),
+				material = new THREE.MeshLambertMaterial();
+			material.name = name;
+			var asset = Assets.Material.create(material);
+			getParentFolder().createFile(name, asset);
+		}
+	})()
+
+	var getParentFolder = function(){
+		var selected = treeView.getSelected(),
+			parent;
+		if( selected.length ){
+			var treeNode = _.last(selected);
+			var fsNode = FS.root.find(treeNode.getPath());
+			if( ! fsNode){
+				console.warn('folder '+treeNode.getPath()+' not exist in project');
+				parent = fsProjectFolder;
+			}else{
+				parent = fsNode;
+			}
+		}else{
+			parent = fsProjectFolder;
+		}
+		return parent;
+	}
+
+
+
 	function handleDragEvent(){
 
 		view.$el[0].addEventListener('dragover', function(e){
@@ -94,7 +176,7 @@ define(function(require, exports, module){
 			}else{
 				var treeNode = new UIBase.Tree.File(node.name);
 
-				if( node.data.getThumb ){
+				if( node.data && node.data.getThumb ){
 					// use asset thumb
 					var base64Src = node.data.getThumb(20);
 					var image = new Image();
@@ -102,7 +184,7 @@ define(function(require, exports, module){
 					image.className = 'asset-thumb-'+node.data.type;//for default asset thumb
 					treeNode.icon = image;
 				}else{
-					treeNode.icon = 'icon-project-file icon-small';
+					treeNode.icon = 'icon-project-'+node.data.type+' icon-small';
 				}
 			}
 			if(node.data){
@@ -163,6 +245,24 @@ define(function(require, exports, module){
 			if(fsNode.data){
 				hub.trigger('inspect:object', fsNode.data.getConfig() );
 			}
+			else if(node.type == 'folder'){
+				hub.trigger('inspect:object', {
+					'Folder' : {
+						type : 'layer',
+						'class' : 'folder',
+						sub : {
+							name : {
+								type : 'input',
+								value : fsNode.name,
+								onchange : function(value){
+									// set node name;
+									fsNode.setName(value);
+								}
+							}
+						}
+					}
+				})
+			}
 		})
 	}
 
@@ -193,191 +293,6 @@ define(function(require, exports, module){
 				break;
 			case 'dds': // compressed texture
 				require('../Core/Assets/Importer/DDS').importFromFile( file, parent );
-		}
-	}
-
-	////////////////File Read Functions///////////////////////////
-
-	///////big one!!!!!!
-	//todo 这么多回调是否要使用streamline.js？
-	function readZip(file){
-
-		// 用作索引
-		var materials = [];
-
-		// based on zip.js
-		zip.createReader(new zip.BlobReader(file), function(reader){
-			
-			reader.getEntries( function(entries){
-
-				var count = 0;
-				var countImage = 0;
-				// add textures
-				_.each( entries, function(entry){
-
-					var fileName = entry.filename,
-						mimetype = zip.getMimeType(fileName);
-
-					//image file
-					if( mimetype.match('image/.*') ){
-
-						count++;
-
-						entry.getData(new zip.Data64URIWriter( mimetype ), function(data){
-						
-							var img = new Image();
-							img.onload = function(){				
-								// callback when all images are loaded
-								count--;
-								countImage--;
-								if( count == 0 && countImage == 0){
-
-									readMaterialFile();
-								}
-							}
-							img.src = data;
-							countImage++;
-
-							var texture = new THREE.Texture(img);
-							texture.name = fileName;
-							//
-							addTexture( texture );
-
-						})	//end get data
-
-
-					}
-
-				} )	//end each
-
-				function readMaterialFile(){
-
-					//add materials
-					_.each( entries, function(entry){
-
-						var fileName = entry.filename,
-							fileSplitted = fileName.split('.'),
-							ext = fileSplitted.pop(),
-							name = fileSplitted.join('.');
-
-						//material file
-						if( ext == 'js'){
-
-							entry.getData( new zip.TextWriter(), function(json){
-
-								var json = JSON.parse(json);
-
-								_.each( json.materials, function(mat){
-
-									var material = createMaterial( mat );
-
-									materials.push(material);
-
-								} )	// end each
-
-								if( ! json.buffers){
-
-									var loader = new THREE.JSONLoader();
-
-									loader.createModel(json, function(geo){
-										
-										geo.name = name;
-										// has face material;
-										if( isBitSet( json.faces[0], 1 ) ){
-
-											var node = createSplittedMeshes(geo, materials);
-											
-											// add mesh to asset
-											addMesh(node);
-										}
-										else{
-											
-											addGeometry( geo );
-											
-											var mesh = getGeometryInstance( geo );
-
-											addMesh( mesh );
-										}
-									});	// end create model
-
-								}
-								else {
-
-									var binaryFileName = json.buffers;
-
-									var binaryFile = _.find(entries, function(entry){ 
-											return entry.filename === binaryFileName 
-										});
-
-									//todo 目前无法使用
-									binaryFile.getData(new zip.BlobWriter(), function(binary){
-
-										var loader = new THREE.BinaryLoader();
-
-										loader.createBinModel( binary, function(geo){
-
-											createSplittedMeshes( geo, materials );
-
-										}, '', [] )// end createBinModel
-
-									})//end getData
-								}
-
-							} ) // end getData
-						}
-
-					} );	//end each
-				}	//end read material file
-
-			} )	//end getEntries
-
-			reader.close();
-		})
-
-	}
-
-	////////////////asset management/////////////////////////////
-
-	//
-	// 把资源拖拽到其它面板上后的处理
-	// json = e.dataTransfer.getData('text/plain')
-	// 
-	function receiveDataTransfer(json, accept){
-
-		json = JSON.parse(json);
-
-		var name, data;
-		// 是本地的project里的资源
-		if(json.uri.match(/\/project\/([\S\s]*)/)){
-
-			var item = getAsset(json.uri);
-			if( ! item){
-				return;
-			}
-			name = item.get('name');
-			data = item.get('data');
-		}
-		if( _.isString( accept ) ){
-			accept = [accept];
-		}
-		if( ! _.find(accept, function(item){return item==json.type} ) ){
-			return;
-		}
-		if( json.type == 'geometry'){
-
-			return getGeometryInstance(data)
-		}
-		else if( json.type == 'mesh' ){
-
-			return getMeshInstance(data)
-		}
-		else if( json.type == 'material' ){
-
-			return data;
-		}
-		else if( json.type =='texture'){
-			
-			return data;
 		}
 	}
 

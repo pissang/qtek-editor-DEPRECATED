@@ -10,4 +10,6 @@ define(function(require, exports, module){
 	exports.Assets 	= require('./Assets/index');
 	exports.UIBase 	= require('./UIBase/index');
 	exports.Helpers = require('./Helpers/index');
+
+	exports.TExtend = require('TExtend.js');
 })

@@ -6,7 +6,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			value : ''
 		}
 	})
@@ -32,6 +31,10 @@ define(function(require, exports, module){
 				self.$el.html(value);
 			})
 			this.render();
+		},
+
+		setName : function(name){
+			this.name = name;
 		},
 
 		render : function(){

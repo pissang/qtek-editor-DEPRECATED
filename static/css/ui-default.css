@@ -445,6 +445,10 @@
 	-moz-transition:0.15s opacity ease-in-out;
 	-o-transition:0.15s opacity ease-in-out;
 }
+/*acceptable*/
+.lblend-acceptable-dragover{
+	box-shadow: inset 0px 0px 5px black;
+}
 
 /*Button的共用样式*/
 .lblend-common-button{

@@ -24,9 +24,8 @@ define(function(require, exports, module){
 			// 调用父节点的init函数
 			Base.Node.prototype.init.call(this);
 
-			var view = new Texture.View;
-			view.model.set({
-				name : 'output'
+			var view = new Texture.View({
+				'name' : 'output'
 			});
 
 			this.parameterLayerView.appendView(view);

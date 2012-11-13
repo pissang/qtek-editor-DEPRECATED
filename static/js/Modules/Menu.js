@@ -89,7 +89,7 @@ define(function(require, exports, module){
 			'export scene' : 'export:scene',
 		},
 		'Edit' : {},
-		'Object' : {
+		'Scene' : {
 			'Empty' : 'create:empty',
 			'Mesh' : {
 				'Cube' : 'create:mesh,cube',
@@ -108,6 +108,15 @@ define(function(require, exports, module){
 				'Perspective' : 'create:camera,perspective',
 				'Ortho' : 'create:camera,ortho'
 			}
+		},
+		'Project' : {
+			'Folder' : 'create:folder',
+			'Assets' : {
+				'Texture' : 'create:asset,texture',
+				'Texture Cube' : 'create:asset,texturecube',
+				'Material' : 'create:asset,material'
+			},
+			'Settings' : ''
 		},
 		'Nodes' : {
 			'Inputs' : {

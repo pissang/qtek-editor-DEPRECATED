@@ -4,6 +4,9 @@
 // Texture Asset
 // Save an texture instance, which can be imported and exported as a json format asset and images
 // file extension texture
+//
+// getInstance 	: get a copy for the same context
+// getCopy		: get a copy for different context
 //========================
 define(function(require, exports, module){
 
@@ -14,7 +17,7 @@ define(function(require, exports, module){
 	function create(texture){
 
 		var name = texture && texture.name;
-
+		
 		var ret = {
 
 			type : 'texture',
@@ -37,7 +40,7 @@ define(function(require, exports, module){
 				return this.data;
 			},
 
-			export : function(){
+			toJSON : function(){
 				return toJSON( this.data );
 			},
 			getInstance : function(){
@@ -145,13 +148,15 @@ define(function(require, exports, module){
 		var canvas = document.createElement('canvas');
 		canvas.width = size;
 		canvas.height = size;
-		canvas.getContext('2d').drawImage(texture.image, 0, 0, size, size);
+		if(texture.image && texture.image.src){
+			canvas.getContext('2d').drawImage(texture.image, 0, 0, size, size);	
+		}
 		return canvas.toDataURL();
 	}
 
 	function getConfig( texture ){
 		return {
-			'Texture Asset' : {
+			'Texture' : {
 				type : 'layer',
 				'class' : 'texture',
 				sub : {
@@ -172,7 +177,34 @@ define(function(require, exports, module){
 						onchange : function(value){
 							// image must be loaded before calling this onchange method
 							texture.image = value;
-							texture.image.needsUpdate = true;
+							texture.needsUpdate = true;
+						},
+						// for drag and drop
+						acceptConfig : {
+							'image' : {
+								'accept' : function(files){
+									if(files instanceof FileList){
+										return true;
+									}
+								},
+								'accepted' : function(files){
+									_.each(files, function(file){
+										if(file.type.match(/image.*/) ||
+											file.name.match(/\.dds$/)){
+											var reader = new FileReader();
+											reader.onload = function(e){
+												var image = new Image();
+												image.onload = function(){
+													texture.needsUpdate = true;
+												}
+												image.src = e.target.result;
+												texture.image = image;
+											}
+											reader.readAsDataURL(file);
+										}
+									})
+								}
+							}
 						}
 					},
 					'mapping' : {
@@ -242,6 +274,14 @@ define(function(require, exports, module){
 						onchange : function(key, value){
 							texture.repeat[key] = value;
 						}
+					},
+					'flipY' : {
+						type : 'boolean',
+						value : texture.flipY,
+						onchange : function(value){
+							texture.flipY = value;
+							texture.needsUpdate = true;
+						}
 					}
 				}
 			}
@@ -276,7 +316,9 @@ define(function(require, exports, module){
 
 	exports.create = create;
 	// static functions
-	exports.export = toJSON;
+	exports.toJSON = toJSON;
 
 	exports.getCopy = getCopy;
+
+	exports.getConfig = getConfig;
 })

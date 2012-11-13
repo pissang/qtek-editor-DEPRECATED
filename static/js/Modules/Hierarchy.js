@@ -95,7 +95,7 @@ define(function(require, exports, module){
 							return true;
 						}
 					}
-				}, 
+				},
 				accepted : function(json){
 					var fsNode = FS.root.find(json.dataSource);
 					if( ! fsNode){

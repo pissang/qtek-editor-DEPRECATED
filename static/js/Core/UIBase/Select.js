@@ -1,13 +1,12 @@
 //=================
 // Select.js
-// 提供change事件
+// todo 是否需要重构一下？
 //=================
 define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',	
-			value : '', //这里name对应option的value
+			value : '', 
 			html : '',	// 每个option的html
 			selected : false
 		}
@@ -34,7 +33,7 @@ define(function(require, exports, module){
 
 		className : 'lblend-select',
 
-		template : '<label class="lblend-select-label">{{label}}</label><a class="lblend-select-button lblend-common-button"></a>',
+		template : '<label class="lblend-select-label">{{name}}</label><a class="lblend-select-button lblend-common-button"></a>',
 
 		collection : null,
 
@@ -69,9 +68,14 @@ define(function(require, exports, module){
 		render : function(){
 			var self = this;
 			this.$el.html(_.template(this.template, {
-				label : this.collection.name || ''
+				name : this.name || ''
 			}));
 			
+		},
+
+		setName : function(name){
+			this.name = name;
+			this.$el.children('label.lblend-select-label').html(name);
 		},
 
 		add : function(model){
@@ -125,11 +129,6 @@ define(function(require, exports, module){
 				$li.addClass('selected');
 			}
 			return $li;
-		},
-
-		setName : function(name){
-			this.collection.name = name;
-			this.$el.children('label.lblend-select-label').html(name);
 		},
 
 		select : function(value){

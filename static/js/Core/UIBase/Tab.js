@@ -1,11 +1,12 @@
 //=========================
 // Tab.js
+// todo 是否需要重构一下？
 //=========================
 define(function(require, exports){
 
 	var Layer = require('./Layer');
 
-	var Collection = Layer.Collection.extend({});
+	var Collection = Layer.Collection.extend();
 
 	var View = Backbone.View.extend({
 
@@ -13,7 +14,8 @@ define(function(require, exports){
 
 		className : 'lblend-tab',
 
-		template : '<ul class="lblend-tab-tabs"></ul><div class="lblend-list"></div>',
+		template : '<ul class="lblend-tab-tabs"></ul>\
+				<div class="lblend-list"></div>',
 
 		tabs : null,
 
@@ -47,6 +49,10 @@ define(function(require, exports){
 				self.renderTabs();
 			})
 
+			if( ! this.collection){
+				this.collection = new Collection;
+			}
+
 			Layer.View.prototype.initialize.call(this)
 		},
 
@@ -73,43 +79,37 @@ define(function(require, exports){
 			})
 		},
 
-		_addModel : function(model){
+		// _addModel : function(model){
 
-			Layer.View.prototype._addModel.call(this, model);
+		// 	Layer.View.prototype._addModel.call(this, model);
 
-			var view = _.last(this._views);
+		// 	var view = _.last(this._views);
 
-			view.hideLabel();
+		// 	view.hideLabel();
 
-			var name = getModelName(model);
+		// 	this.tabs.add({
+		// 		name : name,
+		// 		active : false,
+		// 		// 该标签对应的view
+		// 		view : view
+		// 	})
+		// },
 
-			this.tabs.add({
-				name : name,
-				active : false,
-				// 该标签对应的view
-				view : view
-			})
-		},
+		// _removeModel : function(model){
 
-		_removeModel : function(model){
+		// 	Layer.View.prototype._removeModel.call(this, model);
 
-			Layer.View.prototype._removeModel.call(this, model);
-
-			var name = getModelName(model);
-
-			this.tabs.remove(this.tabs.where({
-				name : name
-			})[0]);
-		},
+		// 	this.tabs.remove(this.tabs.where({
+		// 		name : name
+		// 	})[0]);
+		// },
 
 		appendView : function(view){
 
 			Layer.View.prototype.appendView.call(this, view);
 
-			var name = getViewName(view);
-
 			this.tabs.add({
-				name : name,
+				name : view.name,
 				active : false,
 				// 该标签对应的view
 				view : view,
@@ -121,6 +121,10 @@ define(function(require, exports){
 		removeView : function(view){
 
 			Layer.View.prototype.removeView.call(this, view);
+
+			this.tabs.remove(this.tabs.where({
+				name : view.name
+			})[0]);
 		},
 
 		active : function(tabName){
@@ -139,28 +143,6 @@ define(function(require, exports){
 		}
 
 	})
-
-	// 判断是WrapperModel还是其它Model，并且获取其名字
-	var	getModelName = function(model){
-		var name;
-		if(model instanceof Layer.WrapperModel){
-			var coll = model.get('collection');
-			name = coll.name;
-		}else{
-			name = model.get('name');
-		}
-		return name;
-	}
-
-	var getViewName = function(view){
-		if(view.collection){
-			return view.collection.name
-		}else{
-			return view.model.get('name')
-		}
-	}
-
-	exports.Collection = Collection;
 
 	exports.View = View;
 

@@ -313,6 +313,14 @@ define(function(require, exports, module){
 		this.$el.toggleClass('collapse');
 	}
 
+	Folder.prototype.uncollapase = function(){
+		this.$el.removeClass('collapse');
+	}
+
+	Folder.prototype.collapase = function(){
+		this.$el.addClass('collapse');
+	}
+
 	Folder.prototype.traverse = function(callback){
 		callback( this );
 		_.each( this.children, function(child){
@@ -569,6 +577,16 @@ define(function(require, exports, module){
 				})
 			}
 			this.root.find(path).select(silent);
+		},
+
+		getSelected : function(){
+			var selected = [];
+			this.root.traverse(function(node){
+				if(node.selected){
+					selected.push(node);
+				}
+			})
+			return selected;
 		},
 
 		_dragenter : [],

@@ -9,7 +9,6 @@ define(function(require, exports, module){
 	var Model = Backbone.Model.extend({
 
 		defaults : {
-			name : '',
 			video : null	//VideoDomElement
 		}
 	});
@@ -24,7 +23,7 @@ define(function(require, exports, module){
 
 		className : 'lblend-video',
 
-		template : '<label>{{label}}</label><br />',
+		template : '<label>{{name}}</label><br />',
 
 		initialize : function(){
 
@@ -47,24 +46,26 @@ define(function(require, exports, module){
 				}
 			}, this);
 
-			this.model.on('change:name', function(){
-				this.$el.find('label').html(this.model.get('name'));
-			}, this)
-			
 			this.render();
 		},
 
 		render : function(){
 
-			this.el.innerHTML = _.template(this.template, {
-				label : this.model.get('name') || ''
-			});
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ) );
+
 			if(this.model.get('video')){
 				this.el.appendChild(this.model.get('video'));
 			}else{
 
 				this.$el.append('<video class="lblend-video-default" />');
 			}
+		},
+
+		setName : function(name){
+			this.name = name;
+			this.$el.find('label').html(name);
 		}
 	})
 

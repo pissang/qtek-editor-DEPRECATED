@@ -31,7 +31,10 @@ define(function(require, exports){
 
 		var picking = null,
 			mouseOver = null,
-			$el = $(renderer.domElement);
+			$el = $(renderer.domElement),
+
+			prevX, prevY,
+			dragging = null;
 		
 		// register all events listener of the canvas
 		$el.mousedown(function(e){
@@ -54,7 +57,13 @@ define(function(require, exports){
 			}
 
 			if( obj ){
-				MouseEvent.throw('mousedown', obj, prop)
+				MouseEvent.throw('mousedown', obj, prop);
+			
+				//dragstart
+				MouseEvent.throw('dragstart', obj, prop);
+				prevX = x;
+				prevY = y;
+				dragging = obj;
 			}
 		})
 		.mousemove(function(e){
@@ -88,11 +97,25 @@ define(function(require, exports){
 					}
 					mouseOver = obj;
 				}
+
 			}
 			else if( mouseOver ){
 				// move out the object
 				MouseEvent.throw('mouseout', mouseOver, prop);
 				mouseOver = null;
+			}
+
+			//dragging
+			if( dragging ){
+				_.extend(prop, {
+					prevX : prevX,
+					prevY : prevY,
+					offsetX : x - prevX,
+					offsetY : y - prevY
+				});
+				prevX = x;
+				prevY = y;
+				MouseEvent.throw('drag', dragging, prop);
 			}
 		})
 		.mouseup(function(e){
@@ -115,7 +138,13 @@ define(function(require, exports){
 				}
 			}
 
-			MouseEvent.throw('mouseup', obj, prop)
+			MouseEvent.throw('mouseup', obj, prop);
+
+			//drag stop
+			if( dragging ){
+				MouseEvent.throw('dragend', dragging, prop);
+				dragging = null;
+			}
 		});
 
 		// 基于GPU的拾取

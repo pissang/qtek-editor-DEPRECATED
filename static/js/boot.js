@@ -59,14 +59,12 @@
 		  }
 		});
 
-		//extends event to tree.js object
-		_.extend(THREE.Object3D.prototype, Backbone.Events);
-
 		// dependencies
 		seajs.use([
 					'./js/Core/Hub',
 					'./js/Core/svg',
 					'./js/Core/MouseEventDispatcher',
+					'./js/Core/TExtend.js',
 					//////// ui modules
 					'./js/Core/UIBase/Button',
 					'./js/Core/UIBase/Checkbox',
@@ -93,6 +91,7 @@
 					'./js/Core/UIBase/Mixin/InputPin',
 					'./js/Core/UIBase/Mixin/OutputPin',
 					'./js/Core/UIBase/Mixin/Collapsable',
+					'./js/Core/UIBase/Mixin/Acceptable',
 					///////////Asset
 					'./js/Core/Assets/Util',
 					'./js/Core/Assets/FileSystem',

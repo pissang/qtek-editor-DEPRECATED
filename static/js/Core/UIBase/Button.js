@@ -7,7 +7,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			label : ''
 		}
 	})
@@ -31,6 +30,10 @@ define(function(require, exports, module){
 
 		events : {
 			'click button' : 'onclick'
+		},
+
+		setName : function(name){
+			this.name = name;
 		},
 
 		render : function(){

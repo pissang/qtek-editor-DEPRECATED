@@ -27,7 +27,7 @@ define(function(require, exports, module){
 
 		collection : null,
 
-		labelTemplate : '<label class="lblend-vector-label">{{label}}</label><div class="lblend-list"></div>',
+		template : '<label class="lblend-vector-label">{{name}}</label><div class="lblend-list"></div>',
 
 		initialize : function(){
 			if(! this.collection){
@@ -36,8 +36,10 @@ define(function(require, exports, module){
 			var self = this;
 			this.collection.on('add', function(model){
 				var view = new Float.View({
-					model : model
+					model : model,
+					name : model.get('name')
 				});
+
 				self.$el.children('.lblend-list').append(view.$el);
 			})
 
@@ -48,10 +50,9 @@ define(function(require, exports, module){
 			
 			var self = this;
 
-			self.el.innerHTML = _.template(this.labelTemplate, {
-
-				label : this.collection.label || this.collection.name || ''
-			});
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ) );
 			
 			var $list = self.$el.children('.lblend-list');
 
@@ -59,17 +60,17 @@ define(function(require, exports, module){
 			self.collection.forEach(function(model, index){
 				
 				var view = new Float.View({
-					model : model
+					model : model,
+					name : model.get('name')
 				});
-				view.render();
+
 				$list.append(view.$el);
 			})
 		},
-		// 因为Vector是使用collection，所以不能观察name的变化
-		// 这里只能加一个setName方法设置，不知道有木有更好的办法
+
 		setName : function(name){
-			this.collection.name = name;
-			this.$el.find('label.lblend-vector-label').html(name);
+			this.name = name;
+			this.$el.find('label').html(name);
 		}
 	})
 

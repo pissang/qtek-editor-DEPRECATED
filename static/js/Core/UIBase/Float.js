@@ -8,7 +8,6 @@ define(function(require, exports, module){
 
 	var Model = Backbone.Model.extend({
 		defaults : {
-			name : '',
 			value : 0,
 			min : -100000,
 			max : 100000,
@@ -64,6 +63,8 @@ define(function(require, exports, module){
 
 		editMode : false,
 
+		name : '',
+
 		events : {
 			'click ' : 'enterEditMode',
 			'mousedown ' : 'enterDragMode'
@@ -77,10 +78,6 @@ define(function(require, exports, module){
 			this.model.on('change:value', this.updateValue, this);
 			this.model.on('change:max', this.updatePercent, this);
 			this.model.on('change:min', this.updatePercent, this);
-
-			this.model.on('change:name', function(){
-				this.$el.find('label').html(this.model.get('name'));
-			}, this)
 			
 			this.render();
 		},
@@ -96,13 +93,18 @@ define(function(require, exports, module){
 			else{
 
 				this.$el.html(_.template(this.template, {
-					label : this.model.get('name'),
+					label : this.name,
 					value : Math.round(this.model.get('value')*1000)/1000
 				}));
 			}
 			//update the percent bar
 			this.updatePercent();
 		},
+
+		setName : function(name){
+			this.$el.children('label').html(name);
+			this.name = name;
+		},		
 
 		updateValue : function(){
 

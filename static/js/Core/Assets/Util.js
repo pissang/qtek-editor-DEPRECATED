@@ -210,7 +210,7 @@ define(function(require, exports, module){
 			if( ! node){
 				return;
 			}
-			return node.getChildByName(name); q
+			return node.getChildByName(name); 
 		}, root);
 	}
 

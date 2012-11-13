@@ -43,9 +43,10 @@ define(function(reqUIBasere, exports, module){
 
 			this.__output__ = true;
 
-			var inputView = new Label.View;
+			var inputView = new Label.View({
+				name : 'input'
+			});
 			inputView.model.set({
-				name : 'input',
 				value : 'input'
 			});
 			var canvasView = new Layer.View;

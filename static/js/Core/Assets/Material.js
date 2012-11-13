@@ -42,7 +42,7 @@ define(function(require, exports, module){
 			bindShader : function(shader){
 				bindShader( this.data, shader);
 			},
-			export : function(){
+			toJSON : function(){
 				return toJSON( this.data );
 			},
 			getInstance : function(){
@@ -212,7 +212,7 @@ define(function(require, exports, module){
 
 		var json = {
 			name : material.name,
-			shader : this.shader.export(),
+			shader : this.shader.toJSON(),
 		}
 		
 		return json;
@@ -419,7 +419,7 @@ define(function(require, exports, module){
 		
 		return {
 
-			'Material Asset' : {
+			'Material' : {
 				type : 'layer',
 				sub : props
 			},
@@ -433,9 +433,11 @@ define(function(require, exports, module){
 
 	exports.create = create;
 	// static functions
-	exports.export = toJSON;
+	exports.toJSON = toJSON;
 
 	exports.bindShader = bindShader;
 
 	exports.getCopy = getCopy;
+
+	exports.getConfig = getConfig;
 })

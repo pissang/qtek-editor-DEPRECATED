@@ -40,26 +40,29 @@ define(function(require, exports){
 			Base.Node.prototype.init.call(this);
 
 			// output color
-			var colorView = new Label.View;
+			var colorView = new Label.View({
+				name : 'color'
+			});
 			colorView.model.set({
-				name : 'color',
 				value : 'color'
 			})
 			// 先放到参数层里
 			this.parameterLayerView.appendView(colorView);
 
 			// output normal
-			var normalView = new Label.View;
-			normalView.model.set({	
-				name : 'normal',
+			var normalView = new Label.View({
+				name : 'normal'
+			});
+			normalView.model.set({
 				value : 'normal'
 			})
 			this.parameterLayerView.appendView(normalView);
 
 			//output depth
-			var depthView = new Label.View;
+			var depthView = new Label.View({
+				name : 'depth'
+			});
 			depthView.model.set({
-				name : 'depth',
 				value : 'depth'
 			})
 			this.parameterLayerView.appendView(depthView);

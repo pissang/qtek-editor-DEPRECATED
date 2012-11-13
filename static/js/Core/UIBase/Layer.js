@@ -7,7 +7,6 @@
 define(function(require, exports, module){
 	
 	var Collection = Backbone.Collection.extend({
-		name : ''
 	});
 
 	//存放Collection的Wrapper Model
@@ -32,7 +31,8 @@ define(function(require, exports, module){
 
 		collection : null,
 
-		template : '<h5 class="lblend-layer-label">{{label}}</h5><div class="lblend-list"></div>',
+		template : '<h5 class="lblend-layer-label">{{name}}</h5>\
+					<div class="lblend-list"></div>',
 
 		//
 		//用作子元素的所有一渲染的view的缓存
@@ -63,9 +63,10 @@ define(function(require, exports, module){
 		render : function(){
 			var self = this;
 
-			self.el.innerHTML = _.template(this.template, {
-				label : this.collection.name || ''
-			});
+			this.$el.html( _.template(this.template, {
+				name : this.name
+			} ) );
+
 			self._views = [];
 			// 缓存list的dom和label的dom
 			self.$list = self.$el.children('.lblend-list');
@@ -206,37 +207,42 @@ define(function(require, exports, module){
 			return result;
 		},
 
-		findByName : function(name){
+		findByName : function(name, recursive){
 
 			var self = this;
 
 			var result = null;
 
+			recursive = _.isUndefined(recursive) ? true : recursive;
+
 			function find(view){
-				if(view._views){
+				if(view.name == name){
+					result = name;
+				}
+
+				if(view._views && recursive){
 					_.each(view._views, function(_view, index){
 						find(_view);
 					})
-				}
-				if(view.model){
-					if(view.model.get('name') == name){
-						result = view;
-					}
-				}
-				else if(view.collection){
-					if(view.collection.name == name){
-						result = view;
-					}
 				}
 			}
 			find(this);
 
 			return result;
 		},
+		//path is splited by /
+		find : function(path){
+			return _.reduce(_.compact(path.split('/')), function(view, name){
+				if( ! view){
+					return;
+				}
+				return view.findByName(name, false);
+			}, this);
+		},
 
 		setName : function(name){
-			this.collection.name = name;
-			this.$el.children('h5.lblend-layer-label').html(name);
+			this.name = name;
+			this.$el.children('h5').html(name);
 		},
 
 		hideLabel : function(){

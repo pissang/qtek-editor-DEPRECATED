@@ -24,8 +24,7 @@ define(function(require, exports, module){
 			// 调用父节点的init函数
 			Base.Node.prototype.init.call(this);
 
-			var view = new Float.View;
-			view.model.set({
+			var view = new Float.View({
 				name : 'output'
 			});
 

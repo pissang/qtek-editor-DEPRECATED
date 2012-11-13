@@ -17,7 +17,7 @@ define(function(require, exports, module){
 
 		className : 'lblend-panel',
 
-		template : '<h5 class="lblend-panel-label">{{label}}</h5><div class="lblend-list"></div>',
+		template : '<h5 class="lblend-panel-label">{{name}}</h5><div class="lblend-list"></div>',
 
 		collection : null,
 
@@ -28,11 +28,6 @@ define(function(require, exports, module){
 			//调用父类的渲染程序
 			Layer.View.prototype.render.call(this);
 
-		},
-
-		setName : function(name){
-			this.collection.name = name;
-			this.$el.find('h5.lblend-panel-label').html(name);
 		}
 	});
 

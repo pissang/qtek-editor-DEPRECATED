@@ -21,6 +21,8 @@ define(function(require, exports, module){
 
 		projector = new THREE.Projector();
 
+	var	target = null;
+
 	var instance;
 
 	function getInstance(_renderer, _camera){
@@ -52,13 +54,13 @@ define(function(require, exports, module){
 
 		mouseEventDispatcher = MouseEventDispatcher.create( scene, camera, renderer, false);
 		mouseEventDispatcher.updateScene();
-		handleInteraction();
-
-		var	target = null;
+		
+		handleMoveInteraction();
 
 		function updatePosition(){
 
 			helperContainer.position.set(0, 0, 0);
+
 			target.localToWorld( helperContainer.position );
 
 		}
@@ -76,15 +78,14 @@ define(function(require, exports, module){
 			bind : function(object){
 
 				target = object;
-
-				object.off('updated:position', updatePosition);
-				object.on('updated:position', updatePosition, object);
 			},
 
-			render : function(renderer, camera){
+			render : function(){
 
-				renderer.render( scene, camera );
-
+				if(target){
+					updatePosition();
+					renderer.render( scene, camera );
+				}
 			},
 
 			setRenderer : function(_renderer){
@@ -93,7 +94,9 @@ define(function(require, exports, module){
 
 			setCamera : function(_camera){
 				camera = _camera;
-			}
+			},
+
+			updatePosition : updatePosition
 		}
 
 		instance.useMode( 'move' );
@@ -107,17 +110,44 @@ define(function(require, exports, module){
 			axisY = helpers['move'].getChildByName('axis-y'),
 			axisZ = helpers['move'].getChildByName('axis-z');
 
-		axisX.on('mousedown', function(e){
-			var ray = unprojectedRay(e.x, e.y),
-				point = getIntersectPoint(ray, 'xy');
+		axisX.on('drag', function(e){
+			if( target ){
+				var ray = unprojectedRay(e.prevX, e.prevY),
+					pointPrev = getIntersectPoint(ray, target.position);
+
+				var ray = unprojectedRay(e.x, e.y),
+					point = getIntersectPoint(ray, target.position);
+
+				var diffX = point.x - pointPrev.x;
+
+				target.trigger('update:position', { x : diffX + target.position.x } );
+			}
 		})
-		axisY.on('mousedown', function(e){
-			var ray = unprojectedRay(e.x, e.y),
-				point = getIntersectPoint(ray, 'yz');
+		axisY.on('drag', function(e){
+			if( target ){
+				var ray = unprojectedRay(e.prevX, e.prevY),
+					pointPrev = getIntersectPoint(ray, target.position);
+			
+				var ray = unprojectedRay(e.x, e.y),
+					point = getIntersectPoint(ray, target.position);
+
+				var diffY = point.y - pointPrev.y;
+
+				target.trigger('update:position', { y : diffY + target.position.y } );
+			}
 		})
-		axisZ.on('mousedown', function(e){
-			var ray = unprojectedRay(e.x, e.y),
-				point = getIntersectPoint(ray, 'xz');
+		axisZ.on('drag', function(e){
+			if( target ){
+				var ray = unprojectedRay(e.prevX, e.prevY),
+					pointPrev = getIntersectPoint(ray, target.position);
+			
+				var ray = unprojectedRay(e.x, e.y),
+					point = getIntersectPoint(ray, target.position);
+
+				var diffZ = point.z - pointPrev.z;
+
+				target.trigger('update:position', { z : diffZ + target.position.z } );
+			}
 		})
 		
 	}
@@ -131,34 +161,16 @@ define(function(require, exports, module){
 		return ray;
 	}
 
-	function getIntersectPoint(ray, plane){
-		plane = eulerPlanes[plane];
+	function getIntersectPoint(ray, origin){
 
-		var odn = ray.origin.dot( plane.normal );
-		if( odn < 0){
-			// enable double side intersection
-			distance = -ray.origin.dot( plane.otherSide) / ray.direction.dot( plane.otherSide );
-		}else{
-			distance = -odn / ray.direction.dot( plane.normal );
-		}
+		var normal = new THREE.Vector3().copy(origin).subSelf(ray.origin),
+			odn = ray.origin.dot( normal ),
+			d = new THREE.Vector3().copy(normal).dot(origin),
+			distance = (d-odn) / ray.direction.dot( normal );
+
 		var point = new THREE.Vector3().copy(ray.direction).normalize().multiplyScalar( distance );
 		point.addSelf(ray.origin);
 		return point;
-	}
-
-	var eulerPlanes = {
-		'yz' : {
-			normal : new THREE.Vector3(1, 0, 0),
-			otherSide : new THREE.Vector3(-1, 0, 0)
-		},
-		'xz' : {
-			normal : new THREE.Vector3(0, 1, 0),
-			otherSide : new THREE.Vector3(0, -1, 0)
-		},
-		'xy' : {
-			normal : new THREE.Vector3(0, 0, 1),
-			otherSide : new THREE.Vector3(0, 0, -1)
-		}
 	}
 
 	// for move manipulation
@@ -170,7 +182,7 @@ define(function(require, exports, module){
 		lineGeometry.vertices.push( new THREE.Vector3() );
 		lineGeometry.vertices.push( new THREE.Vector3( 0, 10, 0 ) );
 
-		var coneGeometry = new THREE.CylinderGeometry( 0, 0.5, 2.0, 5, 1 );
+		var coneGeometry = new THREE.CylinderGeometry( 0, 1.0, 2.5, 5, 1 );
 
 		var xAxis = new THREE.Object3D();
 		xAxis.name = 'axis-x';

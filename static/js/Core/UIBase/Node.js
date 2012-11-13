@@ -9,16 +9,23 @@
 define(function(require, exports, module){
 	var Layer = require('./Layer');
 
-	var Collection = Layer.Collection.extend({
-	});
+	var Collection = Layer.Collection.extend();
 
 	var View = Layer.View.extend({
 
 		className : 'lblend-node',
 
-		template : '<h5 class="lblend-node-label">{{label}}</h5><div class="lblend-list"></div><div class="lblend-close" title="close"></div>',
+		template : '<h5 class="lblend-node-label">{{name}}</h5><div class="lblend-list"></div><div class="lblend-close" title="close"></div>',
 
 		collection : null,
+
+		initialize : function(){
+
+			if( ! this.collection){
+				this.collection = new Collection;
+				Layer.View.prototype.initialize.call(this);
+			}
+		},
 
 		render : function(){
 
@@ -56,15 +63,9 @@ define(function(require, exports, module){
 
 			this._inputPinViews = this.findByType('INPUTPIN');
 			this._outputPinViews = this.findByType('OUTPUTPIN');
-		},
-
-		setName : function(name){
-			this.collection.name = name;
-			this.$el.find('h5.lblend-node-label').html(name);
 		}
-	});
 
-	exports.Collection = Collection;
+	});
 
 	exports.View = View;
 
