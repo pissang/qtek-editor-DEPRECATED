@@ -182,7 +182,7 @@ define(function(require, exports, module){
 		lineGeometry.vertices.push( new THREE.Vector3() );
 		lineGeometry.vertices.push( new THREE.Vector3( 0, 10, 0 ) );
 
-		var coneGeometry = new THREE.CylinderGeometry( 0, 1.0, 2.5, 5, 1 );
+		var coneGeometry = new THREE.CylinderGeometry( 0, 1.0, 2.5, 15, 1 );
 
 		var xAxis = new THREE.Object3D();
 		xAxis.name = 'axis-x';

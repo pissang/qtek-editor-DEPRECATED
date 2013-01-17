@@ -54,7 +54,7 @@ define(function(require, exports, module){
 		})
 		// update scene
 		hub.on('added:node', function(node, parent){
-			var path = Assets.Util.getSceneNodePath(parent);
+			var path = parent.getPath();
 			var treeNode = treeView.find(path);
 			
 			if( ! treeNode){
@@ -78,10 +78,10 @@ define(function(require, exports, module){
 		// select object
 		hub.on('selected:node', function(node){
 			// need to be silent to prevent recursive event call
-			treeView.select( Assets.Util.getSceneNodePath(node), false, true );
+			treeView.select( node.getPath(), false, true );
 		})
 		hub.on('removed:node', function(node){
-			treeView.remove( Assets.Util.getSceneNodePath(node), true );
+			treeView.remove( node.getPath(), true );
 		})
 	}
 
@@ -103,7 +103,7 @@ define(function(require, exports, module){
 						return;
 					}
 					var node = fsNode.data.getInstance();
-					var parentNode = Assets.Util.findSceneNode( this.getPath(), scene );
+					var parentNode = scene.getNode( this.getPath() );
 					hub.trigger('add:node', node, parentNode );
 				}
 			}
@@ -114,7 +114,7 @@ define(function(require, exports, module){
 
 		treeView.on('moved:node', function(parent, parentPrev, node){
 			var nodePath = parentPrev.getPath() + '/' + node.name;
-			var sceneNode = Assets.Util.findSceneNode( nodePath, scene );
+			var sceneNode = scene.getNode( nodePath );
 			if( ! sceneNode){
 				console.warn('scene node '+ nodePath + ' not existed');
 				return;
@@ -123,7 +123,7 @@ define(function(require, exports, module){
 		})
 
 		treeView.on('selected:node', function(node){
-			var sceneNode = Assets.Util.findSceneNode( node.getPath(), scene);
+			var sceneNode = scene.getNode( node.getPath() );
 			if( ! sceneNode){
 				console.warn('scnen node'+nodePath+' not existed');
 				return;

@@ -11,5 +11,5 @@ define(function(require, exports, module){
 	exports.UIBase 	= require('./UIBase/index');
 	exports.Helpers = require('./Helpers/index');
 
-	exports.TExtend = require('TExtend.js');
+	exports.TExtend = require('./TExtend.js');
 })

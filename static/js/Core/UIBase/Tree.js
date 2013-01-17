@@ -10,7 +10,7 @@ define(function(require, exports, module){
 	// + type : 		file|folder
 	// + name : ""
 	// + icon : "" 		icon class
-	// + owner
+	// + owner			distinguish different trees
 	// + children : []	if type is folder
 	// + dataSource 	asset path or scene node json data
 	// + dataType 		type of binded asset or node
@@ -116,7 +116,7 @@ define(function(require, exports, module){
 			type : this.type,
 			name : this.name,
 			path : this.getPath(),
-			icon : this.icon,
+			// icon : this.icon,
 			owner : this.owner,
 			dataSource : _.isFunction(this.dataSource) ? this.dataSource() : this.dataSource,
 			dataType : this.dataType
@@ -334,7 +334,9 @@ define(function(require, exports, module){
 
 	// find a folder or file 
 	Folder.prototype.find = function(path){
-
+		if( ! path){
+			return;
+		}
 		var root = this;
 		// abosolute path
 		if( path.charAt(0) == '/'){
@@ -401,7 +403,7 @@ define(function(require, exports, module){
 			type : this.type,
 			name : this.name,
 			path : this.getPath(),
-			icon : this.icon,
+			// icon : this.icon,
 			owner : this.owner,
 			dataSource : _.isFunction(this.dataSource) ? this.dataSource() : this.dataSource,
 			dataType : this.dataType,

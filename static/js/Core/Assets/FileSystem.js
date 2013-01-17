@@ -143,6 +143,9 @@ define(function(require, exports, module){
 	}
 	// find a folder or file 
 	Folder.prototype.find = function(path){
+		if( ! path){
+			return;
+		}
 		var root = this;
 		// abosolute path
 		if( path.charAt(0) == '/'){

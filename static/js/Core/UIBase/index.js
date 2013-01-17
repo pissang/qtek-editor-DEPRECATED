@@ -21,5 +21,8 @@ define(function(require, exports, module){
 	exports.Vector 		= require('./Vector');
 	exports.Video 		= require('./Video');
 	exports.Tab 		= require('./Tab');
+	exports.AssetPreview = require('./AssetPreview');
+	exports.MaterialPreview = require('./MaterialPreview');
+	exports.PrefabPreview = require('./PrefabPreview');
 	exports.Mixin 		= require('./Mixin/index');
 })

@@ -84,6 +84,9 @@
 					'./js/Core/UIBase/Vector',
 					'./js/Core/UIBase/Video',
 					'./js/Core/UIBase/Tab',
+					'./js/Core/UIBase/AssetPreview',
+					'./js/Core/UIBase/MaterialPreview',
+					'./js/Core/UIBase/PrefabPreview',
 					///////// UIBase mixins
 					'./js/Core/UIBase/Mixin/index',
 					'./js/Core/UIBase/Mixin/Pin',

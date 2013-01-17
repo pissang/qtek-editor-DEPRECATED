@@ -21,6 +21,9 @@ define(function(require, exports, module){
 			$scrollbarXThumb = $scrollbarX.find('.lblend-scrollbar-thumb'),
 			$scrollbarYThumb = $scrollbarY.find('.lblend-scrollbar-thumb');
 
+		var scrollableY = false;
+		var scrollableX = false;
+
 		$scrollbarX.mousewheel(function(e, delta){
 			e.stopPropagation();
 			stepX(delta*20);
@@ -101,7 +104,9 @@ define(function(require, exports, module){
 			}, 500);
 
 			view.$el.mousewheel(function(e, delta){
-				stepY(delta*20);
+				if(scrollableY){
+					stepY(delta*20);
+				}
 			})
 		}
 
@@ -117,15 +122,19 @@ define(function(require, exports, module){
 			percentY = clientHeight / overviewHeight;
 
 			if( percentX >= 1){
+				scrollableX = false;
 				$scrollbarX.css('display', 'none');
 			}
 			else{
+				scrollableX = true;
 				$scrollbarX.css('display', 'block');
 				$scrollbarXThumb.width( percentX * view.$el.width() );
 			}
 			if( percentY >= 1){
+				scrollableY = false;
 				$scrollbarY.css('display', 'none');
 			}else{
+				scrollableY = true;
 				$scrollbarY.css('display', 'block');
 				$scrollbarYThumb.height( percentY * view.$el.height() );
 			}

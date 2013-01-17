@@ -206,6 +206,25 @@
 	display:inline-block;
 /*	position: relative;*/
 }
+/*preview*/
+.lblend-preview{
+
+}
+.lblend-preview-label{
+	line-height: 20px;
+}
+.lblend-preview-path{
+	color:white;
+	margin: 5px;
+}
+.lblend-preview-viewport{
+}
+.lblend-preview-viewport canvas{
+	box-shadow: inset 0px 0px 6px black;
+	background-color: #464646;
+	width:100%;
+	min-height: 200px;
+}
 /*Layer组件*/
 .lblend-layer{
 
@@ -418,6 +437,7 @@
 	height:10px;
 	padding-left: 5px;
 	padding-bottom: 5px;
+	display: none;
 }
 .lblend-scrollbar-y{
 	position:absolute;
@@ -427,6 +447,7 @@
 	width:10px;
 	padding-right: 5px;
 	padding-left: 5px;
+	display: none;
 }
 .lblend-scrollbar-x:hover .lblend-scrollbar-thumb,
 .lblend-scrollbar-y:hover .lblend-scrollbar-thumb{

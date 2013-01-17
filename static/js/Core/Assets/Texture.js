@@ -174,10 +174,11 @@ define(function(require, exports, module){
 					'image' : {
 						type : 'image',
 						value : texture.image,
-						onchange : function(value){
+						onchange : function(value, updatePartial){
 							// image must be loaded before calling this onchange method
 							texture.image = value;
 							texture.needsUpdate = true;
+
 						},
 						// for drag and drop
 						acceptConfig : {
@@ -187,18 +188,15 @@ define(function(require, exports, module){
 										return true;
 									}
 								},
-								'accepted' : function(files){
+								'accepted' : function(files, setModel){
 									_.each(files, function(file){
 										if(file.type.match(/image.*/) ||
 											file.name.match(/\.dds$/)){
 											var reader = new FileReader();
 											reader.onload = function(e){
-												var image = new Image();
-												image.onload = function(){
-													texture.needsUpdate = true;
-												}
-												image.src = e.target.result;
-												texture.image = image;
+												setModel({
+													src : e.target.result
+												})
 											}
 											reader.readAsDataURL(file);
 										}

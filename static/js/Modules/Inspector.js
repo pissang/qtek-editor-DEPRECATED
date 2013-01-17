@@ -96,10 +96,27 @@ define(function(require, exports, module){
 			case 'texture':
 				itemView = createTextureView(name, item.value, item.onchange);
 				break;
+			case 'materialpreview':
+				itemView = createMaterialPreviewView(name, item.value, item.onchange);
+				break;
 		}
 		if(itemView && item.acceptConfig){
 			
 			UIBase.Mixin.Acceptable.applyTo(itemView);
+			// wrap the accpeted function
+			// enable callback to update the model
+			_.each(item.acceptConfig, function(config){
+				if( ! config.__wraped__){		
+					var acceptedPrev = config.accepted;
+					config.accepted = function(data){
+						acceptedPrev(data, function(keyValue){
+							itemView.model.set(keyValue);
+						})
+					}
+					config.__wraped__ = true;
+				}
+			})
+
 			_.extend(itemView.acceptConfig, item.acceptConfig);
 		}
 		return itemView;
@@ -166,21 +183,6 @@ define(function(require, exports, module){
 
 		view.model.on('change:path', function(model, _value){
 			onchange && onchange(_value);
-		})
-
-		// accept texture
-		view.$el[0].addEventListener('drop', function(e){
-			var json = e.dataTransfer.getData('text/plain');
-			if( json ){
-				json = JSON.parse(json);
-			}
-			// from three view
-			if( json.owner ){	
-				if( json.owner == 'project' && json.dataType == 'texture'){
-					
-					view.model.set('path', json.dataSource);
-				}
-			}
 		})
 
 		return view;
@@ -282,6 +284,31 @@ define(function(require, exports, module){
 
 			// adapt to native color picker format
 			val = parseInt(val.substr(1), 16);
+			onchange && onchange(val);
+		})
+
+		return view;
+	}
+
+	function createMaterialPreviewView(name, value, onchange){
+
+		var view = new UIBase.MaterialPreview.View({
+			name : name
+		});
+		var matFile = FS.root.find( value );
+		if( matFile ){
+			view.model.set({
+				path : value,
+				target : matFile.data.getCopy()
+			})
+		}else{
+			view.model.set({
+				path : value,
+				target : null
+			})
+		}
+
+		view.model.on('change:path', function(model, val){
 			onchange && onchange(val);
 		})
 

@@ -78,9 +78,7 @@ define(function(require, exports, module){
 
 		// https://github.com/mrdoob/three.js/issues/2073
 		// https://github.com/mrdoob/three.js/issues/363
-		if( material && material.map ){
-			geo.uvsNeedUpdate = true;
-		}
+		
 		if( ! geo.__referencecount__ ){
 			geo.__referencecount__ = 0;
 		}

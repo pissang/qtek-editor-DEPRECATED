@@ -178,48 +178,4 @@ define(function(require, exports, module){
 		}
 	}
 
-	// some bridge function from treeview to scene
-
-	// get path of scene node compatible to three view
-	exports.getSceneNodePath = function( node ){
-		var path = node.name;
-		while(node.parent){
-			node = node.parent;
-			path = node.name + '/' + path;
-		}
-		return path;
-	}
-
-	exports.findSceneNode = function( path, parent ){
-
-		if( path instanceof THREE.Object3D ){
-			return path;
-		}else if( ! _.isString(path) ){
-			return;
-		}
-
-		var root = parent;
-		if( path.charAt(0) == '/'){
-			path = path.substring(1);
-			root = exports.getRoot(root);
-			// remove scene
-			path = path.substring(root.name.length);
-		}
-
-		return _.reduce(_.compact(path.split('/')), function(node, name){
-			if( ! node){
-				return;
-			}
-			return node.getChildByName(name); 
-		}, root);
-	}
-
-	exports.getRoot = function( node ){
-		var root = node;
-		while(node.parent){
-			root = node.parent;
-		}
-		return root;
-	}
-
 })

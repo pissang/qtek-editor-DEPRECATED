@@ -364,9 +364,11 @@ define(function(require, exports, module){
 						if( ! value){
 							material.uniforms[name].value = null;
 								if(name == 'map' ||
-								name == 'lightMap' ||
-								name == 'specularMap' ||
-								name == 'envMap'){
+									name == 'lightMap' ||
+									name == 'specularMap' ||
+									name == 'envMap' ||
+									name == 'normalMap' ||
+									name == 'bumpMap'){
 
 								material[name] = false; 
 								material.needsUpdate = true;
@@ -378,7 +380,7 @@ define(function(require, exports, module){
 								console.warn('texture '+value+' is not in the project');
 								return;
 							}
-							material.uniforms[name].value = tex.data;
+							material.uniforms[name].value = texAsset.data;
 
 							if(name == 'map' ||
 								name == 'lightMap' ||
@@ -389,6 +391,26 @@ define(function(require, exports, module){
 
 								material[name] = true;
 								material.needsUpdate = true;
+							}
+						}
+					}
+
+					prop.acceptConfig = {
+						'texture' : {
+							'accept' : function(json){
+								if( ! (json instanceof FileList) 
+									&& json.owner == 'project'
+									&& (json.dataType == 'texture' 
+										||json.dataType == 'texturecube') ){
+									return true;
+								}
+							},
+							'accepted' : function(json, setModel){
+								if(json.dataSource){
+									setModel({
+										path : json.dataSource
+									})
+								}
 							}
 						}
 					}
@@ -427,6 +449,32 @@ define(function(require, exports, module){
 			'Shader' : {
 				type : 'layer',
 				sub : shaderProps
+			},
+
+			"Preview" : {
+				type : "layer",
+				"class" : "material-preview",
+				sub : {
+					"preview" : {
+						type : "materialpreview",
+						value : (function(){
+							// only inspect material in the project
+							if(material && material.host){
+								return material.host.getPath();
+							}else{
+								return '';
+							}
+						})(),
+						onchange : function(path){
+							var matAsset = FS.root.find(path);
+							if( ! matAsset ){
+								console.warn('material '+path+' not found in project');
+								return;
+							}
+							material = matAsset.data;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -440,4 +488,6 @@ define(function(require, exports, module){
 	exports.getCopy = getCopy;
 
 	exports.getConfig = getConfig;
+
+	exports.convertMaterial = convertMaterial;
 })

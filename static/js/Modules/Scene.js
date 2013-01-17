@@ -60,7 +60,7 @@ define(function(require, exports){
 			camera = new THREE.PerspectiveCamera( 45, width/height, 0.1, 10000 );
 			camera.__helper__ = true;
 
-			defaultMaterial = new THREE.MeshLambertMaterial();
+			defaultMaterial = Assets.Material.convertMaterial( new THREE.MeshLambertMaterial() );
 			defaultMaterial.__default__ = true;
 			defaultLight = new THREE.DirectionalLight(0xffffff);
 			defaultLight.position.set(1, 1, 0);
@@ -186,7 +186,7 @@ define(function(require, exports){
 	function handleHubEvent(){
 
 		hub.on('add:node', function(node, parent, silent){
-			parent = Assets.Util.findSceneNode(parent, scene);
+			parent = scene.getNode(parent);
 			if( ! parent ){
 				parent = scene;
 			}
@@ -302,7 +302,7 @@ define(function(require, exports){
 		//激活摄像机
 		hub.on('active:camera', function(camera, silent){
 
-			camera = Assets.Util.findSceneNode( camera );
+			camera = scene.getNode( camera );
 			if( ! camera){
 				return;
 			}
@@ -316,7 +316,7 @@ define(function(require, exports){
 		// 选择物体的事件
 		// 选择后触发 hub.on('selected:light', function(){}) 事件
 		hub.on('select:node', function(node, silent){
-			node = Assets.Util.findSceneNode(node);
+			node = scene.getNode(node);
 
 			if( ! node){
 				return;
@@ -334,7 +334,7 @@ define(function(require, exports){
 		//使用选中摄像机查看视角
 		hub.on('view:camera', function(_camera){
 
-			_camera = Assets.Util.findSceneNode( _camera );
+			_camera = scene.getNode( _camera );
 			if( ! _camera){
 				return;
 			}
@@ -349,7 +349,7 @@ define(function(require, exports){
 		// 完成后触发removed:node事件
 		hub.on('remove:node', function(node, silent){
 
-			node = Assets.Util.findSceneNode(node);
+			node = scene.getNode(node);
 
 			node.parent.remove(node);
 
@@ -393,13 +393,9 @@ define(function(require, exports){
 			
 			query = queryStr.split('.');
 			var item = object;
-			// query for the deepest key
+			// query for the deepest field
 			for(i = 0;  i < query.length-1; i++){
 				item = item[ query[i] ];
-			}
-			// degree to radians
-			if( queryStr.indexOf('rotation.') >= 0){
-				value = value / 360 * Math.PI*2;
 			}
 			// extend all the props of value if value is an object
 			// need an extend prop to make sure its not a camera, material object or something else
@@ -433,7 +429,7 @@ define(function(require, exports){
 
 		hub.on('update:node', function(node, query, value, silent){
 
-			var node = Assets.Util.findSceneNode( node );
+			var node = scene.getNode( node );
 			hub.trigger('update:object', node, query, value, silent);
 
 			if( ! silent){

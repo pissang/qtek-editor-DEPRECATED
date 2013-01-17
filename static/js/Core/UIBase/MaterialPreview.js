@@ -4,35 +4,50 @@
 //===================
 define(function(require, exports, module){
 
-	var Preview = require('./Preview');
+	var Preview = require('./AssetPreview');
 
 	var Model = Preview.Model.extend();
 
 	var View = Preview.View.extend({
 
+		className : 'lblend-material-preview',
+
 		initialize : function(){
 			if( ! this.model){
 				this.model = new Model;
 			}
+
+			this.model.on('change:target', function(){
+				this.updateMaterial()
+			}, this);
+
 			Preview.View.prototype.initialize.call(this);
 		},
 
 		mesh : null,
 
 		prepareScene : function(){
-			var geo = new THREE.SphereGeometry(0.73, 10, 10);
+
+			Preview.View.prototype.prepareScene.call(this);
+
+			var geo = new THREE.SphereGeometry(0.73, 50, 50);
 			this.mesh = new THREE.Mesh(geo, this.model.get('target'));
 
-			this.model.off('change:target', updateMaterial);
-			this.model.on('change:target', updateMaterial);
-
 			this.scene.add(this.mesh);
+			this.updateMaterial();
 		},
 
-		updateMaterial : function(model, value){
+		updateMaterial : function(){
+			var mat = this.model.get('target');
+			if( ! mat ){
+				// default material
+				this.mesh.material = new THREE.MeshLambertMaterial();
 
-			this.mesh.material = value;
+			}else{
+				this.mesh.material = mat;
+			}
 		}
+
 	})
 
 	exports.Model = Model;

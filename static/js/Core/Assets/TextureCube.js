@@ -175,18 +175,15 @@ define(function(require, exports, module){
 							return true;
 						}
 					},
-					'accepted' : function(files){
+					'accepted' : function(files, setModel){
 						_.each(files, function(file){
 							if(file.type.match(/image.*/) ||
 								file.name.match(/\.dds$/)){
 								var reader = new FileReader();
 								reader.onload = function(e){
-									var image = new Image();
-									image.onload = function(){
-										texture,needsUpdate = true;
-									}
-									image.src = e.target.result;
-									texture.image[idx] = image;
+									setModel({
+										src : e.target.result
+									})
 								}
 								reader.readAsDataURL(file);
 							}
@@ -202,7 +199,7 @@ define(function(require, exports, module){
 		return texture;
 	}
 
-	function getCopy(){
+	function getCopy( texture ){
 		return texture.clone();
 	}
 

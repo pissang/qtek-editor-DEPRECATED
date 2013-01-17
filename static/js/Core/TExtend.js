@@ -5,10 +5,57 @@
 //=================
 define(function(require, exports, module){
 
+	var FS = require('./Assets/FileSystem');
+
 	//extends event to tree.js object
 	_.extend(THREE.Object3D.prototype, Backbone.Events);
 	_.extend(THREE.Material.prototype, Backbone.Events);
 	_.extend(THREE.Texture.prototype, Backbone.Events);
+
+	_.extend(THREE.Object3D.prototype, {
+
+		getPath : function( ){
+			var node = this;
+			var path = node.name;
+			while(node.parent){
+				node = node.parent;
+				path = node.name + '/' + path;
+			}
+			return path;
+		},
+
+		getNode : function(path){
+			if( path instanceof THREE.Object3D ){
+				return path;
+			}else if( ! _.isString(path) ){
+				return;
+			}
+
+			var root = this;
+			if( path.charAt(0) == '/'){
+				path = path.substring(1);
+				root = this.getScene(root);
+				// remove scene
+				path = path.substring(root.name.length);
+			}
+
+			return _.reduce(_.compact(path.split('/')), function(node, name){
+				if( ! node){
+					return;
+				}
+				return node.getChildByName(name); 
+			}, root);
+		},
+
+		getScene : function(){
+			var root = this;
+			while(root.parent){
+				root = root.parent;
+			}
+			return root;
+		}
+
+	})
 
 	_.extend(THREE.Object3D.prototype, {
 		getConfig : function(){
@@ -18,14 +65,57 @@ define(function(require, exports, module){
 	})
 
 	_.extend(THREE.Mesh.prototype, {
-		getConfig : function(){
 
+		getConfig : function(){
+			var self = this;
 			var config = getTransformConfig(this);
-			// not inspect default material
-			if( this.material && ! this.material.__default__ ){	
-				// material asset config
-				_.extend(config, this.material.host.getConfig() );
-			}
+			// material asset config
+			_.extend(config, {
+				"Material Preview" : {
+					type : "layer",
+					"class" : "material-preview",
+					sub : {
+						"preview" : {
+							type : "materialpreview",
+							value : (function(){
+								// only inspect material in the project
+								if(self.material && self.material.host){
+									return self.material.host.getPath();
+								}else{
+									return '';
+								}
+							})(),
+							onchange : function(path){
+								var matFile = FS.root.find(path);
+								if( ! matFile ){
+									console.warn('material '+path+' not found in project');
+									return;
+								}
+								var matAsset = matFile.data;
+								self.material = matAsset.data;
+							},
+							acceptConfig : {
+								'project' : {
+									accept : function(json){
+										if( ! (json instanceof FileList)
+											&& json.owner == 'project'
+											&& json.dataType == 'material'){
+											return true;
+										}
+									},
+									accepted : function(json, setModel){
+										if(json.dataSource){
+											setModel({
+												path : json.dataSource
+											})
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			} );
 			return config;
 		}
 	})
@@ -81,16 +171,17 @@ define(function(require, exports, module){
 					'rotation' : {
 						type : 'vector',
 						value : {
-							x : obj.rotation.x,
-							y : obj.rotation.y,
-							z : obj.rotation.z
+							x : obj.rotation.x*180/Math.PI,
+							y : obj.rotation.y*180/Math.PI,
+							z : obj.rotation.z*180/Math.PI
 						},
 						min : -10000,
 						max : 10000,
 						step : 1,
 						onchange : function(key, value){
 							var tmp = {};
-							tmp[key] = value;
+							// degree to radians
+							tmp[key] = value/180*Math.PI;
 							obj.trigger('update:rotation', tmp);
 						}
 					},
