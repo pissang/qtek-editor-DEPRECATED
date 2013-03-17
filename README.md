@@ -1,4 +1,4 @@
-# Web Scene Editor
+# QTek Editor
 
 A Browser side scene editor for WebGL. Thanks mr.doob for the awsome WebGL framework THREE.js
 
